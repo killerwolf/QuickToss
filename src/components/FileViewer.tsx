@@ -1,5 +1,3 @@
-import { animated, useSpring } from "@react-spring/web";
-import { useDrag } from "@use-gesture/react";
 import { ArrowLeft, CheckCircle, Eye, RotateCcw, XCircle } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
@@ -13,108 +11,17 @@ interface FileViewerProps {
   onBack: () => void;
 }
 
-const SWIPE_THRESHOLD = 150;
-const VELOCITY_THRESHOLD = 0.5;
-
 const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onUndo, onBack }) => {
   const { files, currentIndex, undoStack } = sessionState;
   const currentFile = files[currentIndex];
 
   const [showMetadata, setShowMetadata] = useState(false);
 
-  // Spring animation for card position and rotation
-  const [{ x, y, rotate, scale, opacity }, api] = useSpring(() => ({
-    x: 0,
-    y: 0,
-    rotate: 0,
-    scale: 1,
-    opacity: 1,
-  }));
-
-  // Overlay opacity for swipe feedback
-  const [overlayState, setOverlayState] = useState<{
-    show: boolean;
-    type: "delete" | "keep";
-    opacity: number;
-  }>({
-    show: false,
-    type: "delete",
-    opacity: 0,
-  });
-
-  const resetCard = useCallback(() => {
-    api.start({
-      x: 0,
-      y: 0,
-      rotate: 0,
-      scale: 1,
-      opacity: 1,
-      config: { tension: 200, friction: 25 },
-    });
-    setOverlayState({ show: false, type: "delete", opacity: 0 });
-  }, [api]);
-
   const performAction = useCallback(
     (action: "delete" | "keep") => {
-      // Animate card out
-      const direction = action === "delete" ? -1 : 1;
-      api.start({
-        x: direction * window.innerWidth,
-        rotate: direction * 30,
-        opacity: 0,
-        config: { tension: 200, friction: 25 },
-      });
-
-      // Trigger action after animation
-      setTimeout(() => {
-        onFileAction(action, currentIndex);
-        resetCard();
-      }, 300);
+      onFileAction(action, currentIndex);
     },
-    [api, onFileAction, currentIndex, resetCard]
-  );
-
-  // Drag gesture handling
-  const bind = useDrag(
-    ({ active, movement: [mx, my], direction: [_xDir], velocity: [vx] }) => {
-      const trigger = Math.abs(mx) > SWIPE_THRESHOLD || Math.abs(vx) > VELOCITY_THRESHOLD;
-
-      if (active) {
-        // Update card position during drag
-        const rotation = mx / 10;
-        api.start({
-          x: mx,
-          y: my / 3, // Subtle vertical movement
-          rotate: rotation,
-          scale: 1.1,
-          immediate: true,
-        });
-
-        // Show overlay feedback
-        if (Math.abs(mx) > 50) {
-          const opacity = Math.min(Math.abs(mx) / SWIPE_THRESHOLD, 1);
-          setOverlayState({
-            show: true,
-            type: mx < 0 ? "delete" : "keep",
-            opacity,
-          });
-        } else {
-          setOverlayState({ show: false, type: "delete", opacity: 0 });
-        }
-      } else {
-        // Handle release
-        if (trigger && Math.abs(mx) > 50) {
-          performAction(mx < 0 ? "delete" : "keep");
-        } else {
-          resetCard();
-        }
-      }
-    },
-    {
-      axis: "x",
-      bounds: { left: -window.innerWidth, right: window.innerWidth },
-      rubberband: true,
-    }
+    [onFileAction, currentIndex]
   );
 
   // Keyboard shortcuts
@@ -175,77 +82,45 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
         </button>
       </div>
 
-      {/* Main Card Area */}
-      <div className="flex-1 flex items-center justify-center p-6 relative max-h-[calc(100vh-200px)]">
-        <animated.div
-          {...bind()}
-          style={{
-            x,
-            y,
-            rotate,
-            scale,
-            opacity,
-            touchAction: "none",
-          }}
-          className="swipe-card w-full max-w-2xl max-h-full cursor-grab active:cursor-grabbing relative shadow-2xl"
-        >
-          {/* Swipe Overlay */}
-          {overlayState.show && (
-            <div
-              className={`swipe-overlay ${
-                overlayState.type === "keep" ? "keep-overlay" : "delete-overlay"
-              }`}
-              style={{ opacity: overlayState.opacity }}
-            >
-              {overlayState.type === "keep" ? "KEEP" : "DELETE"}
-            </div>
-          )}
+      {/* File Preview */}
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <FilePreview file={currentFile} className="max-w-6xl w-full h-full" />
+      </div>
 
-          {/* File Preview */}
-          <div className="h-full flex flex-col min-h-0">
-            <div className="flex-1 overflow-hidden rounded-t-xl min-h-0">
-              <FilePreview file={currentFile} className="h-full w-full object-cover" />
+      {/* File Info */}
+      <div className="bg-white border-t p-4">
+        <div className="flex items-start justify-between max-w-4xl mx-auto">
+          <div className="flex-1 min-w-0 mr-4">
+            <h3 className="text-lg font-semibold text-gray-900 truncate">{currentFile.name}</h3>
+            <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+              <span>{formatFileSize(currentFile.size)}</span>
+              <span>•</span>
+              <span>{formatDate(currentFile.modified)}</span>
             </div>
 
-            {/* File Info */}
-            <div className="p-4 bg-white rounded-b-xl border-t shrink-0">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0 mr-4">
-                  <h3 className="text-base font-semibold text-gray-900 truncate">
-                    {currentFile.name}
-                  </h3>
-                  <div className="flex items-center space-x-3 mt-1 text-sm text-gray-500">
-                    <span>{formatFileSize(currentFile.size)}</span>
-                    <span>•</span>
-                    <span>{formatDate(currentFile.modified)}</span>
-                  </div>
-
-                  {showMetadata && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded-lg text-xs space-y-1">
-                      <div className="truncate">
-                        <strong>Path:</strong> {currentFile.path}
-                      </div>
-                      <div>
-                        <strong>Type:</strong> {currentFile.type}
-                      </div>
-                      <div>
-                        <strong>Extension:</strong> {currentFile.extension}
-                      </div>
-                    </div>
-                  )}
+            {showMetadata && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs space-y-1">
+                <div className="truncate">
+                  <strong>Path:</strong> {currentFile.path}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowMetadata(!showMetadata)}
-                  className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors shrink-0"
-                >
-                  <Eye className="w-4 h-4" />
-                </button>
+                <div>
+                  <strong>Type:</strong> {currentFile.type}
+                </div>
+                <div>
+                  <strong>Extension:</strong> {currentFile.extension}
+                </div>
               </div>
-            </div>
+            )}
           </div>
-        </animated.div>
+
+          <button
+            type="button"
+            onClick={() => setShowMetadata(!showMetadata)}
+            className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors shrink-0"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Action Buttons */}
