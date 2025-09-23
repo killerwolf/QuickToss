@@ -97,16 +97,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, settings, onSettin
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-4 py-3 bg-gray-50 rounded-b-lg">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Done
-          </button>
-        </div>
       </div>
     </div>
   );

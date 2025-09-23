@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#3B82F6" stroke="#1E40AF" stroke-width="8"/>
+  
+  <!-- File icon -->
+  <rect x="180" y="140" width="120" height="160" rx="8" fill="white"/>
+  <rect x="180" y="140" width="80" height="20" rx="4" fill="#3B82F6"/>
+  
+  <!-- Swipe arrow -->
+  <path d="M320 200 L380 200 L370 190 M370 190 L380 200 L370 210" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Motion lines -->
+  <path d="M340 180 Q350 185 360 180" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M340 220 Q350 225 360 220" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  
+  <!-- App name -->
+  <text x="256" y="380" font-family="Arial, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="white">QuickToss</text>
+</svg>

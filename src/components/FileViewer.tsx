@@ -143,7 +143,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
       // Silently fail if audio context is not available
       console.log("Audio feedback not available");
     }
-  }, []);
+  }, [settings.soundEffects]);
 
   const performAction = useCallback(
     async (action: "delete" | "keep") => {

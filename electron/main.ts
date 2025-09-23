@@ -60,6 +60,9 @@ class QuickTossApp {
       title: "QuickToss",
     });
 
+    // Set the application name for the menu bar
+    app.setName("QuickToss");
+
     // Load the React app
     if (this.isDev) {
       this.mainWindow.loadURL("http://localhost:3000");
