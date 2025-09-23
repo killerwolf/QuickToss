@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
 
@@ -123,6 +123,17 @@ class QuickTossApp {
     ipcMain.handle("file-exists", async (_, filePath: string) => {
       return existsSync(filePath);
     });
+
+    // Read file as buffer for PDF preview
+    ipcMain.handle("read-file-as-buffer", async (_, filePath: string) => {
+      try {
+        const buffer = readFileSync(filePath);
+        return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      } catch (error) {
+        console.error("Error reading file as buffer:", error);
+        throw error;
+      }
+    });
   }
 
   private async scanFolder(folderPath: string): Promise<FileItem[]> {
@@ -141,6 +152,12 @@ class QuickTossApp {
       ".txt",
       ".rtf",
       ".md",
+      ".log",
+      ".json",
+      ".xml",
+      ".csv",
+      ".yaml",
+      ".yml",
       // Future support
       ".mp4",
       ".mov",
@@ -186,7 +203,7 @@ class QuickTossApp {
 
   private getFileType(extension: string): "image" | "document" | "video" | "other" {
     const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".bmp", ".tiff"];
-    const docExts = [".pdf", ".txt", ".rtf", ".md", ".doc", ".docx"];
+    const docExts = [".pdf", ".txt", ".rtf", ".md", ".log", ".json", ".xml", ".csv", ".yaml", ".yml", ".doc", ".docx"];
     const videoExts = [".mp4", ".mov", ".avi"];
 
     if (imageExts.includes(extension)) return "image";

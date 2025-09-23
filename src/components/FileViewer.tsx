@@ -157,7 +157,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
   const progress = ((currentIndex + 1) / files.length) * 100;
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-white shadow-sm shrink-0">
         <button
@@ -190,7 +190,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
       </div>
 
       {/* File Preview */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 relative">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
         <FilePreview file={currentFile} className="max-w-6xl w-full h-full" />
 
         {/* Action Feedback Overlay */}
