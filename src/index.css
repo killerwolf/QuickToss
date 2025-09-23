@@ -18,6 +18,85 @@
 }
 
 @layer components {
+  .action-feedback {
+    animation: feedbackPulse 0.3s ease-out;
+  }
+
+  .action-feedback.delete {
+    animation: deleteFeedback 0.3s ease-out;
+  }
+
+  .action-feedback.keep {
+    animation: keepFeedback 0.3s ease-out;
+  }
+
+  @keyframes feedbackPulse {
+    0% {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes deleteFeedback {
+    0% {
+      transform: scale(0.8) rotate(-5deg);
+      opacity: 0;
+    }
+    25% {
+      transform: scale(1.15) rotate(2deg);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05) rotate(-1deg);
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes keepFeedback {
+    0% {
+      transform: scale(0.8) translateY(10px);
+      opacity: 0;
+    }
+    25% {
+      transform: scale(1.1) translateY(-5px);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05) translateY(2px);
+    }
+    100% {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .button-press {
+    animation: buttonPress 0.1s ease-out;
+  }
+
+  @keyframes buttonPress {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(0.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
   .file-preview {
     @apply w-full h-full object-contain bg-gray-50;
   }
