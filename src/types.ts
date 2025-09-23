@@ -31,6 +31,9 @@ export interface SwipeAction {
 export interface PreviewProps {
   file: FileItem;
   className?: string;
+  settings?: {
+    videoAutoplay: boolean;
+  };
 }
 
 export const formatFileSize = (bytes: number): string => {
@@ -49,3 +52,9 @@ export const formatDate = (date: Date): string => {
     minute: "2-digit",
   }).format(new Date(date));
 };
+
+export interface AppSettings {
+  soundEffects: boolean;
+  videoAutoplay: boolean;
+  confirmDelete: boolean;
+}

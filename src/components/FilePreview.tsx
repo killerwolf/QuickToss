@@ -9,7 +9,7 @@ import type { PreviewProps } from "../types";
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
-const FilePreview: React.FC<PreviewProps> = ({ file }) => {
+const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
   const [previewSrc, setPreviewSrc] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -226,6 +226,7 @@ const FilePreview: React.FC<PreviewProps> = ({ file }) => {
           <video
             src={previewSrc}
             controls
+            autoPlay={settings?.videoAutoplay || false}
             className="max-h-full max-w-full rounded-lg shadow-lg"
             style={{
               maxHeight: "calc(100vh - 400px)",

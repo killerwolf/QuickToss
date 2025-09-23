@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
 
@@ -8,11 +8,19 @@ if (require("electron-squirrel-startup")) {
   app.quit();
 }
 
+interface AppSettings {
+  soundEffects: boolean;
+  videoAutoplay: boolean;
+  confirmDelete: boolean;
+}
+
 class QuickTossApp {
   private mainWindow: BrowserWindow | null = null;
   private isDev = process.env.NODE_ENV === "development";
+  private settingsPath: string;
 
   constructor() {
+    this.settingsPath = join(app.getPath("userData"), "settings.json");
     this.setupApp();
     this.setupIPC();
   }
@@ -131,6 +139,49 @@ class QuickTossApp {
         return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
       } catch (error) {
         console.error("Error reading file as buffer:", error);
+        throw error;
+      }
+    });
+
+    // Get app settings
+    ipcMain.handle("get-settings", async () => {
+      try {
+        if (existsSync(this.settingsPath)) {
+          const settingsData = readFileSync(this.settingsPath, "utf8");
+          return JSON.parse(settingsData);
+        } else {
+          // Return default settings
+          const defaultSettings: AppSettings = {
+            soundEffects: true,
+            videoAutoplay: false,
+            confirmDelete: true,
+          };
+          return defaultSettings;
+        }
+      } catch (error) {
+        console.error("Error reading settings:", error);
+        // Return default settings on error
+        return {
+          soundEffects: true,
+          videoAutoplay: false,
+          confirmDelete: true,
+        };
+      }
+    });
+
+    // Save app settings
+    ipcMain.handle("save-settings", async (_, settings: AppSettings) => {
+      try {
+        // Ensure userData directory exists
+        const userDataDir = app.getPath("userData");
+        if (!existsSync(userDataDir)) {
+          mkdirSync(userDataDir, { recursive: true });
+        }
+        
+        writeFileSync(this.settingsPath, JSON.stringify(settings, null, 2));
+        return true;
+      } catch (error) {
+        console.error("Error saving settings:", error);
         throw error;
       }
     });
