@@ -75,8 +75,21 @@ jobs:
       - name: Build the app
         run: npm run build
 
+      - name: Determine release channel
+        id: channel
+        run: |
+          # A semver prerelease tag (e.g. v1.3.0-rc.1) publishes as a GitHub
+          # prerelease, which electron-updater ignores by default — so it
+          # won't reach existing installs. A plain tag (v1.3.0) publishes as
+          # a normal release and becomes the update target for everyone.
+          if [[ "${{ github.ref_name }}" == *-* ]]; then
+            echo "release_type=prerelease" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_type=release" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Package & publish (x64 + arm64)
-        run: npx electron-builder --mac --x64 --arm64 --publish always
+        run: npx electron-builder --mac --x64 --arm64 --publish always -c.publish.releaseType=${{ steps.channel.outputs.release_type }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
