@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 env:
-  # 'lts/*' always resolves to the latest Node.js LTS on the runner.
-  NODE_VERSION: 'lts/*'
+  # Pinned to the current Node.js LTS line.
+  NODE_VERSION: '24'
 
 jobs:
   test:
