@@ -1,46 +1,46 @@
 const { execSync } = require("node:child_process");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
+const sharp = require("sharp");
 
-// Create assets directory if it doesn't exist
 const assetsDir = path.join(__dirname, "..", "assets");
-if (!fs.existsSync(assetsDir)) {
-  fs.mkdirSync(assetsDir, { recursive: true });
-}
+const svgPath = path.join(assetsDir, "icon.svg");
+const iconSizes = [16, 32, 64, 128, 256];
 
-// Convert SVG to different formats using electron-icon-builder
-try {
+async function main() {
   console.log("Building icons from SVG...");
 
-  // Generate PNG for Linux
-  execSync(`npx electron-icon-builder --input=assets/icon.svg --output=assets --platforms=linux`, {
-    stdio: "inherit",
-  });
+  const masterPngPath = path.join(os.tmpdir(), "quicktoss-icon-master.png");
+  await sharp(svgPath, { density: 384 }).resize(1024, 1024).png().toFile(masterPngPath);
 
-  // Generate ICO for Windows
-  execSync(`npx electron-icon-builder --input=assets/icon.svg --output=assets --platforms=win32`, {
-    stdio: "inherit",
-  });
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "quicktoss-icons-"));
+  execSync(
+    `npx electron-icon-builder --input="${masterPngPath}" --output="${outputDir}" --flatten`,
+    {
+      stdio: "inherit",
+    }
+  );
 
-  // Generate ICNS for macOS
-  execSync(`npx electron-icon-builder --input=assets/icon.svg --output=assets --platforms=darwin`, {
-    stdio: "inherit",
-  });
+  const generatedDir = path.join(outputDir, "icons");
+  fs.copyFileSync(path.join(generatedDir, "icon.icns"), path.join(assetsDir, "icon.icns"));
+  fs.copyFileSync(path.join(generatedDir, "icon.ico"), path.join(assetsDir, "icon.ico"));
+  fs.copyFileSync(path.join(generatedDir, "512x512.png"), path.join(assetsDir, "icon.png"));
+
+  for (const size of iconSizes) {
+    fs.copyFileSync(
+      path.join(generatedDir, `${size}x${size}.png`),
+      path.join(assetsDir, `icon-${size}.png`)
+    );
+  }
+
+  fs.rmSync(outputDir, { recursive: true, force: true });
+  fs.rmSync(masterPngPath, { force: true });
 
   console.log("Icons generated successfully!");
-} catch (error) {
-  console.error("Error generating icons:", error.message);
-
-  // Fallback: create simple PNG files
-  console.log("Creating fallback PNG files...");
-
-  // Create a simple 512x512 PNG (this is a placeholder)
-  const _simpleIcon = `data:image/svg+xml;base64,${Buffer.from(`
-    <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-      <rect width="512" height="512" fill="#3B82F6"/>
-      <text x="256" y="280" font-family="Arial" font-size="48" font-weight="bold" text-anchor="middle" fill="white">QT</text>
-    </svg>
-  `).toString("base64")}`;
-
-  console.log("Fallback icon created. Please replace with proper icon files.");
 }
+
+main().catch((error) => {
+  console.error("Error generating icons:", error.message);
+  process.exit(1);
+});
