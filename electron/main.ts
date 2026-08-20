@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { autoUpdater } from "electron-updater";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
@@ -14,6 +15,12 @@ interface AppSettings {
   confirmDelete: boolean;
 }
 
+type UpdateStatus =
+  | { state: "available"; version: string }
+  | { state: "downloading"; percent: number }
+  | { state: "downloaded"; version: string }
+  | { state: "error"; message: string };
+
 class QuickTossApp {
   private mainWindow: BrowserWindow | null = null;
   private isDev = process.env.NODE_ENV === "development";
@@ -23,6 +30,7 @@ class QuickTossApp {
     this.settingsPath = join(app.getPath("userData"), "settings.json");
     this.setupApp();
     this.setupIPC();
+    this.setupAutoUpdater();
   }
 
   private setupApp() {
@@ -34,12 +42,46 @@ class QuickTossApp {
           this.createMainWindow();
         }
       });
+
+      if (!this.isDev) {
+        autoUpdater.checkForUpdates().catch((error) => {
+          console.error("Error checking for updates:", error);
+        });
+      }
     });
 
     app.on("window-all-closed", () => {
       if (process.platform !== "darwin") {
         app.quit();
       }
+    });
+  }
+
+  private setupAutoUpdater() {
+    // Downloads updates in the background; the renderer is only asked to
+    // restart once the download has finished.
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    const sendStatus = (status: UpdateStatus) => {
+      this.mainWindow?.webContents.send("update-status", status);
+    };
+
+    autoUpdater.on("update-available", (info) => {
+      sendStatus({ state: "available", version: info.version });
+    });
+
+    autoUpdater.on("download-progress", (progress) => {
+      sendStatus({ state: "downloading", percent: progress.percent });
+    });
+
+    autoUpdater.on("update-downloaded", (info) => {
+      sendStatus({ state: "downloaded", version: info.version });
+    });
+
+    autoUpdater.on("error", (error) => {
+      console.error("Auto-updater error:", error);
+      sendStatus({ state: "error", message: error.message });
     });
   }
 
@@ -187,6 +229,11 @@ class QuickTossApp {
         console.error("Error saving settings:", error);
         throw error;
       }
+    });
+
+    // Restart the app and install the downloaded update
+    ipcMain.handle("quit-and-install", () => {
+      autoUpdater.quitAndInstall();
     });
   }
 

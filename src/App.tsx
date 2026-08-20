@@ -1,6 +1,7 @@
 import { useState } from "react";
 import CompletionScreen from "./components/CompletionScreen";
 import FileViewer from "./components/FileViewer";
+import UpdateNotifier from "./components/UpdateNotifier";
 import WelcomeScreen from "./components/WelcomeScreen";
 import type { SessionState } from "./types";
 import "./electron.d.ts";
@@ -159,6 +160,7 @@ function App() {
       }}
     >
       {renderContent()}
+      <UpdateNotifier />
     </div>
   );
 }
