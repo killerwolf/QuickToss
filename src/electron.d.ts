@@ -1,31 +1,15 @@
-export interface FileItem {
-  name: string;
-  path: string;
-  size: number;
-  modified: Date;
-  extension: string;
-  type: "image" | "document" | "video" | "other";
-}
+// The API shapes live in electron/ipc-types.ts, next to the preload script that
+// implements them. This file only re-exports them for renderer code and
+// declares the global that preload installs.
+import type { ElectronAPI } from "../electron/ipc-types";
 
-export interface FileStats {
-  size: number;
-  modified: Date;
-  created: Date;
-}
-
-export type UpdateStatus =
-  | { state: "available"; version: string }
-  | { state: "error"; message: string };
-
-export interface ElectronAPI {
-  selectFolder: () => Promise<string | null>;
-  scanFolder: (folderPath: string) => Promise<FileItem[]>;
-  moveToTrash: (filePath: string) => Promise<boolean>;
-  getFileStats: (filePath: string) => Promise<FileStats | null>;
-  fileExists: (filePath: string) => Promise<boolean>;
-  onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
-  openReleasePage: () => Promise<void>;
-}
+export type {
+  AppSettings,
+  ElectronAPI,
+  FileItem,
+  FileStats,
+  UpdateStatus,
+} from "../electron/ipc-types";
 
 declare global {
   interface Window {

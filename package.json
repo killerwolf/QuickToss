@@ -17,6 +17,7 @@
     "build:mac": "npm run build && electron-builder --mac",
     "publish:mac": "npm run build && electron-builder --mac --publish always",
     "postinstall": "electron-builder install-app-deps",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.main.json",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format .",

@@ -3,19 +3,12 @@ import { autoUpdater } from "electron-updater";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
+import type { AppSettings, FileItem, UpdateStatus } from "./ipc-types";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require("electron-squirrel-startup")) {
   app.quit();
 }
-
-interface AppSettings {
-  soundEffects: boolean;
-  videoAutoplay: boolean;
-  confirmDelete: boolean;
-}
-
-type UpdateStatus = { state: "available"; version: string } | { state: "error"; message: string };
 
 const RELEASES_URL = "https://github.com/killerwolf/QuickToss/releases";
 
@@ -372,15 +365,6 @@ class QuickTossApp {
     if (videoExts.includes(extension)) return "video";
     return "other";
   }
-}
-
-interface FileItem {
-  name: string;
-  path: string;
-  size: number;
-  modified: Date;
-  extension: string;
-  type: "image" | "document" | "video" | "other";
 }
 
 // Initialize the app

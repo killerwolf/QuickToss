@@ -156,7 +156,7 @@ function App() {
       className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100"
       style={{
         // Ensure no overlap on any platform
-        WebkitAppRegion: "no-drag" as React.CSSProperties["WebkitAppRegion"],
+        WebkitAppRegion: "no-drag",
       }}
     >
       {renderContent()}
