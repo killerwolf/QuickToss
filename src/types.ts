@@ -1,11 +1,8 @@
-export interface FileItem {
-  name: string;
-  path: string;
-  size: number;
-  modified: Date;
-  extension: string;
-  type: "image" | "document" | "video" | "other";
-}
+// FileItem and AppSettings cross the IPC boundary, so they're defined once in
+// electron/ipc-types.ts and re-exported here for renderer code.
+import type { FileItem } from "../electron/ipc-types";
+
+export type { AppSettings, FileItem } from "../electron/ipc-types";
 
 export interface UndoAction {
   action: "delete" | "keep";
@@ -52,9 +49,3 @@ export const formatDate = (date: Date): string => {
     minute: "2-digit",
   }).format(new Date(date));
 };
-
-export interface AppSettings {
-  soundEffects: boolean;
-  videoAutoplay: boolean;
-  confirmDelete: boolean;
-}
