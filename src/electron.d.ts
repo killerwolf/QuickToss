@@ -15,8 +15,6 @@ export interface FileStats {
 
 export type UpdateStatus =
   | { state: "available"; version: string }
-  | { state: "downloading"; percent: number }
-  | { state: "downloaded"; version: string }
   | { state: "error"; message: string };
 
 export interface ElectronAPI {
@@ -26,7 +24,7 @@ export interface ElectronAPI {
   getFileStats: (filePath: string) => Promise<FileStats | null>;
   fileExists: (filePath: string) => Promise<boolean>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
-  quitAndInstall: () => Promise<void>;
+  openReleasePage: () => Promise<void>;
 }
 
 declare global {
