@@ -1,6 +1,6 @@
-import { X, Settings as SettingsIcon } from "lucide-react";
+import { Settings as SettingsIcon, X } from "lucide-react";
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useEffect, useId, useState } from "react";
 import type { AppSettings } from "../types";
 
 interface SettingsProps {
@@ -12,6 +12,9 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, settings, onSettingsChange }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
+  const soundEffectsId = useId();
+  const videoAutoplayId = useId();
+  const confirmDeleteId = useId();
 
   useEffect(() => {
     setLocalSettings(settings);
@@ -48,11 +51,14 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, settings, onSettin
           {/* Sound Effects */}
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium text-gray-900">Sound Effects</label>
+              <label htmlFor={soundEffectsId} className="text-sm font-medium text-gray-900">
+                Sound Effects
+              </label>
               <p className="text-xs text-gray-500">Play audio feedback for actions</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
+                id={soundEffectsId}
                 type="checkbox"
                 checked={localSettings.soundEffects}
                 onChange={(e) => handleSettingChange("soundEffects", e.target.checked)}
@@ -65,11 +71,14 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, settings, onSettin
           {/* Video Autoplay */}
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium text-gray-900">Video Autoplay</label>
+              <label htmlFor={videoAutoplayId} className="text-sm font-medium text-gray-900">
+                Video Autoplay
+              </label>
               <p className="text-xs text-gray-500">Automatically play videos when opened</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
+                id={videoAutoplayId}
                 type="checkbox"
                 checked={localSettings.videoAutoplay}
                 onChange={(e) => handleSettingChange("videoAutoplay", e.target.checked)}
@@ -82,11 +91,16 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, settings, onSettin
           {/* Confirm Delete */}
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium text-gray-900">Confirm Delete</label>
-              <p className="text-xs text-gray-500">Show confirmation dialog before deleting files</p>
+              <label htmlFor={confirmDeleteId} className="text-sm font-medium text-gray-900">
+                Confirm Delete
+              </label>
+              <p className="text-xs text-gray-500">
+                Show confirmation dialog before deleting files
+              </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
+                id={confirmDeleteId}
                 type="checkbox"
                 checked={localSettings.confirmDelete}
                 onChange={(e) => handleSettingChange("confirmDelete", e.target.checked)}
@@ -96,7 +110,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, settings, onSettin
             </label>
           </div>
         </div>
-
       </div>
     </div>
   );

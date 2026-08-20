@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
 
@@ -180,7 +180,7 @@ class QuickTossApp {
         if (!existsSync(userDataDir)) {
           mkdirSync(userDataDir, { recursive: true });
         }
-        
+
         writeFileSync(this.settingsPath, JSON.stringify(settings, null, 2));
         return true;
       } catch (error) {
@@ -257,7 +257,20 @@ class QuickTossApp {
 
   private getFileType(extension: string): "image" | "document" | "video" | "other" {
     const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".bmp", ".tiff"];
-    const docExts = [".pdf", ".txt", ".rtf", ".md", ".log", ".json", ".xml", ".csv", ".yaml", ".yml", ".doc", ".docx"];
+    const docExts = [
+      ".pdf",
+      ".txt",
+      ".rtf",
+      ".md",
+      ".log",
+      ".json",
+      ".xml",
+      ".csv",
+      ".yaml",
+      ".yml",
+      ".doc",
+      ".docx",
+    ];
     const videoExts = [".mp4", ".mov", ".avi"];
 
     if (imageExts.includes(extension)) return "image";
