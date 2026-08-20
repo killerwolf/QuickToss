@@ -1,15 +1,19 @@
-import { Download, RefreshCw } from "lucide-react";
+import { AlertTriangle, Download, RefreshCw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { UpdateStatus } from "../electron.d.ts";
 
 function UpdateNotifier() {
   const [status, setStatus] = useState<UpdateStatus | null>(null);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    return window.electronAPI.onUpdateStatus(setStatus);
+    return window.electronAPI.onUpdateStatus((next) => {
+      setDismissed(false);
+      setStatus(next);
+    });
   }, []);
 
-  if (!status || status.state === "error") return null;
+  if (!status || dismissed) return null;
 
   const handleRestart = () => {
     window.electronAPI.quitAndInstall();
@@ -17,7 +21,12 @@ function UpdateNotifier() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg bg-white px-4 py-3 shadow-lg border border-gray-200">
-      {status.state === "downloaded" ? (
+      {status.state === "error" ? (
+        <>
+          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <span className="text-sm text-gray-600">Update failed — will retry next launch</span>
+        </>
+      ) : status.state === "downloaded" ? (
         <>
           <RefreshCw className="w-4 h-4 text-blue-600" />
           <span className="text-sm text-gray-900">
@@ -41,6 +50,14 @@ function UpdateNotifier() {
           </span>
         </>
       )}
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss"
+        className="text-gray-400 hover:text-gray-600"
+      >
+        <X className="w-4 h-4" />
+      </button>
     </div>
   );
 }

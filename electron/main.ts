@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { autoUpdater } from "electron-updater";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
 
@@ -62,6 +62,7 @@ class QuickTossApp {
     // restart once the download has finished.
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.logger = this.createUpdaterLogger();
 
     const sendStatus = (status: UpdateStatus) => {
       this.mainWindow?.webContents.send("update-status", status);
@@ -83,6 +84,26 @@ class QuickTossApp {
       console.error("Auto-updater error:", error);
       sendStatus({ state: "error", message: error.message });
     });
+  }
+
+  private createUpdaterLogger() {
+    const logPath = join(app.getPath("logs"), "auto-updater.log");
+
+    const write = (level: string, args: unknown[]) => {
+      const line = `[${new Date().toISOString()}] [${level}] ${args.map(String).join(" ")}\n`;
+      try {
+        appendFileSync(logPath, line);
+      } catch (error) {
+        console.error("Failed to write updater log:", error);
+      }
+    };
+
+    return {
+      info: (...args: unknown[]) => write("info", args),
+      warn: (...args: unknown[]) => write("warn", args),
+      error: (...args: unknown[]) => write("error", args),
+      debug: (...args: unknown[]) => write("debug", args),
+    };
   }
 
   private createMainWindow() {
