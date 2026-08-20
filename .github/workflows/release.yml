@@ -33,11 +33,9 @@ jobs:
 
       - name: Run linter
         run: npm run lint
-        continue-on-error: true
 
       - name: Check formatting
         run: npm run check
-        continue-on-error: true
 
       - name: Test build (compile + pack only)
         run: npm run pack

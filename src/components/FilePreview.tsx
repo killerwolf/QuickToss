@@ -45,7 +45,14 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
   }, [file.path]);
 
   useEffect(() => {
-    console.log("FilePreview useEffect triggered for file:", file.name, "type:", file.type, "extension:", file.extension);
+    console.log(
+      "FilePreview useEffect triggered for file:",
+      file.name,
+      "type:",
+      file.type,
+      "extension:",
+      file.extension
+    );
     setLoading(true);
     setError(false);
     setTextContent("");
@@ -127,8 +134,17 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
   };
 
   const renderPreview = () => {
-    console.log("renderPreview called - loading:", loading, "error:", error, "file type:", file.type, "extension:", file.extension);
-    
+    console.log(
+      "renderPreview called - loading:",
+      loading,
+      "error:",
+      error,
+      "file type:",
+      file.type,
+      "extension:",
+      file.extension
+    );
+
     if (loading) {
       console.log("Showing loading spinner");
       return <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>;
@@ -175,17 +191,22 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
 
     // PDF preview
     if (file.type === "document" && file.extension === ".pdf") {
-      console.log("PDF preview section - pdfBuffer exists:", !!pdfBuffer, "pdfBuffer size:", pdfBuffer?.byteLength);
+      console.log(
+        "PDF preview section - pdfBuffer exists:",
+        !!pdfBuffer,
+        "pdfBuffer size:",
+        pdfBuffer?.byteLength
+      );
       if (pdfBuffer) {
         console.log("Rendering PDF with buffer");
         return (
           <div className="w-full h-full flex flex-col">
-            <div 
+            <div
               className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-white rounded-lg shadow-lg"
-              style={{ 
+              style={{
                 maxHeight: "calc(100vh - 300px)",
                 scrollbarWidth: "thin",
-                scrollbarColor: "#cbd5e0 #f7fafc"
+                scrollbarColor: "#cbd5e0 #f7fafc",
               }}
             >
               <Document
@@ -194,7 +215,7 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
                 onLoadError={onPdfLoadError}
                 className="flex flex-col items-center space-y-4"
               >
-                {Array.from(new Array(pdfPages), (el, index) => (
+                {Array.from(new Array(pdfPages), (_el, index) => (
                   <Page
                     key={`page_${index + 1}`}
                     pageNumber={index + 1}
@@ -206,9 +227,7 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
             </div>
             {pdfPages > 1 && (
               <div className="flex items-center justify-center p-2 bg-gray-100 rounded-lg">
-                <span className="text-sm text-gray-600">
-                  {pdfPages} pages - Scroll to navigate
-                </span>
+                <span className="text-sm text-gray-600">{pdfPages} pages - Scroll to navigate</span>
               </div>
             )}
           </div>

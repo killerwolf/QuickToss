@@ -1,7 +1,7 @@
 import { ArrowLeft, CheckCircle, Eye, RotateCcw, Settings, XCircle } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import { formatDate, formatFileSize, type SessionState, type AppSettings } from "../types";
+import { type AppSettings, formatDate, formatFileSize, type SessionState } from "../types";
 import FilePreview from "./FilePreview";
 import SettingsComponent from "./Settings";
 
@@ -50,100 +50,112 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
     }
   }, []);
 
-  const playActionSound = useCallback((action: "delete" | "keep") => {
-    if (!settings.soundEffects) return;
-    
-    // Create audio context for sound feedback
-    try {
-      const audioContext = new (
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      )();
+  const playActionSound = useCallback(
+    (action: "delete" | "keep") => {
+      if (!settings.soundEffects) return;
 
-      if (action === "delete") {
-        // Delete sound: Descending "whoosh" effect (like something being thrown away)
-        const oscillator1 = audioContext.createOscillator();
-        const oscillator2 = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        const filter = audioContext.createBiquadFilter();
+      // Create audio context for sound feedback
+      try {
+        const audioContext = new (
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        )();
 
-        // Connect: oscillators -> filter -> gain -> destination
-        oscillator1.connect(filter);
-        oscillator2.connect(filter);
-        filter.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        if (action === "delete") {
+          // Delete sound: Descending "whoosh" effect (like something being thrown away)
+          const oscillator1 = audioContext.createOscillator();
+          const oscillator2 = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          const filter = audioContext.createBiquadFilter();
 
-        // Two oscillators for richer sound
-        oscillator1.frequency.setValueAtTime(300, audioContext.currentTime);
-        oscillator1.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.3);
-        oscillator1.type = "sawtooth";
+          // Connect: oscillators -> filter -> gain -> destination
+          oscillator1.connect(filter);
+          oscillator2.connect(filter);
+          filter.connect(gainNode);
+          gainNode.connect(audioContext.destination);
 
-        oscillator2.frequency.setValueAtTime(200, audioContext.currentTime);
-        oscillator2.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.3);
-        oscillator2.type = "triangle";
+          // Two oscillators for richer sound
+          oscillator1.frequency.setValueAtTime(300, audioContext.currentTime);
+          oscillator1.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.3);
+          oscillator1.type = "sawtooth";
 
-        // Low-pass filter for "whoosh" effect
-        filter.type = "lowpass";
-        filter.frequency.setValueAtTime(800, audioContext.currentTime);
-        filter.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
+          oscillator2.frequency.setValueAtTime(200, audioContext.currentTime);
+          oscillator2.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.3);
+          oscillator2.type = "triangle";
 
-        // Volume envelope
-        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          // Low-pass filter for "whoosh" effect
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(800, audioContext.currentTime);
+          filter.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
 
-        oscillator1.start(audioContext.currentTime);
-        oscillator1.stop(audioContext.currentTime + 0.3);
-        oscillator2.start(audioContext.currentTime);
-        oscillator2.stop(audioContext.currentTime + 0.3);
-      } else {
-        // Keep sound: Ascending "chime" effect (like a positive confirmation)
-        const oscillator1 = audioContext.createOscillator();
-        const oscillator2 = audioContext.createOscillator();
-        const oscillator3 = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        const filter = audioContext.createBiquadFilter();
+          // Volume envelope
+          gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
 
-        // Connect: oscillators -> filter -> gain -> destination
-        oscillator1.connect(filter);
-        oscillator2.connect(filter);
-        oscillator3.connect(filter);
-        filter.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+          oscillator1.start(audioContext.currentTime);
+          oscillator1.stop(audioContext.currentTime + 0.3);
+          oscillator2.start(audioContext.currentTime);
+          oscillator2.stop(audioContext.currentTime + 0.3);
+        } else {
+          // Keep sound: Ascending "chime" effect (like a positive confirmation)
+          const oscillator1 = audioContext.createOscillator();
+          const oscillator2 = audioContext.createOscillator();
+          const oscillator3 = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          const filter = audioContext.createBiquadFilter();
 
-        // Three oscillators for a pleasant chord
-        oscillator1.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-        oscillator1.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.2); // E5
-        oscillator1.type = "sine";
+          // Connect: oscillators -> filter -> gain -> destination
+          oscillator1.connect(filter);
+          oscillator2.connect(filter);
+          oscillator3.connect(filter);
+          filter.connect(gainNode);
+          gainNode.connect(audioContext.destination);
 
-        oscillator2.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
-        oscillator2.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
-        oscillator2.type = "sine";
+          // Three oscillators for a pleasant chord
+          oscillator1.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+          oscillator1.frequency.exponentialRampToValueAtTime(
+            659.25,
+            audioContext.currentTime + 0.2
+          ); // E5
+          oscillator1.type = "sine";
 
-        oscillator3.frequency.setValueAtTime(783.99, audioContext.currentTime); // G5
-        oscillator3.frequency.exponentialRampToValueAtTime(1046.5, audioContext.currentTime + 0.2); // C6
-        oscillator3.type = "sine";
+          oscillator2.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
+          oscillator2.frequency.exponentialRampToValueAtTime(
+            783.99,
+            audioContext.currentTime + 0.2
+          ); // G5
+          oscillator2.type = "sine";
 
-        // High-pass filter for bright, clear sound
-        filter.type = "highpass";
-        filter.frequency.setValueAtTime(400, audioContext.currentTime);
+          oscillator3.frequency.setValueAtTime(783.99, audioContext.currentTime); // G5
+          oscillator3.frequency.exponentialRampToValueAtTime(
+            1046.5,
+            audioContext.currentTime + 0.2
+          ); // C6
+          oscillator3.type = "sine";
 
-        // Volume envelope with quick attack and decay
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0.12, audioContext.currentTime + 0.05);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
+          // High-pass filter for bright, clear sound
+          filter.type = "highpass";
+          filter.frequency.setValueAtTime(400, audioContext.currentTime);
 
-        oscillator1.start(audioContext.currentTime);
-        oscillator1.stop(audioContext.currentTime + 0.25);
-        oscillator2.start(audioContext.currentTime);
-        oscillator2.stop(audioContext.currentTime + 0.25);
-        oscillator3.start(audioContext.currentTime);
-        oscillator3.stop(audioContext.currentTime + 0.25);
+          // Volume envelope with quick attack and decay
+          gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+          gainNode.gain.linearRampToValueAtTime(0.12, audioContext.currentTime + 0.05);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
+
+          oscillator1.start(audioContext.currentTime);
+          oscillator1.stop(audioContext.currentTime + 0.25);
+          oscillator2.start(audioContext.currentTime);
+          oscillator2.stop(audioContext.currentTime + 0.25);
+          oscillator3.start(audioContext.currentTime);
+          oscillator3.stop(audioContext.currentTime + 0.25);
+        }
+      } catch (_error) {
+        // Silently fail if audio context is not available
+        console.log("Audio feedback not available");
       }
-    } catch (_error) {
-      // Silently fail if audio context is not available
-      console.log("Audio feedback not available");
-    }
-  }, [settings.soundEffects]);
+    },
+    [settings.soundEffects]
+  );
 
   const performAction = useCallback(
     async (action: "delete" | "keep") => {
@@ -237,9 +249,9 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
 
       {/* File Preview */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
-        <FilePreview 
-          file={currentFile} 
-          className="max-w-6xl w-full h-full" 
+        <FilePreview
+          file={currentFile}
+          className="max-w-6xl w-full h-full"
           settings={{ videoAutoplay: settings.videoAutoplay }}
         />
 
