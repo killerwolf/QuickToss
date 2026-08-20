@@ -3,6 +3,7 @@ import { autoUpdater } from "electron-updater";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
+import { getFileType, isSupportedExtension } from "./file-types";
 import type { AppSettings, FileItem, UpdateStatus } from "./ipc-types";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
@@ -278,35 +279,6 @@ class QuickTossApp {
   }
 
   private async scanFolder(folderPath: string): Promise<FileItem[]> {
-    const supportedExtensions = [
-      // Images
-      ".jpg",
-      ".jpeg",
-      ".png",
-      ".gif",
-      ".webp",
-      ".heic",
-      ".bmp",
-      ".tiff",
-      // Documents
-      ".pdf",
-      ".txt",
-      ".rtf",
-      ".md",
-      ".log",
-      ".json",
-      ".xml",
-      ".csv",
-      ".yaml",
-      ".yml",
-      // Future support
-      ".mp4",
-      ".mov",
-      ".avi",
-      ".doc",
-      ".docx",
-    ];
-
     const files: FileItem[] = [];
 
     try {
@@ -319,14 +291,14 @@ class QuickTossApp {
         if (stats.isFile()) {
           const extension = entry.toLowerCase().substring(entry.lastIndexOf("."));
 
-          if (supportedExtensions.includes(extension)) {
+          if (isSupportedExtension(extension)) {
             files.push({
               name: entry,
               path: fullPath,
               size: stats.size,
               modified: stats.mtime,
               extension,
-              type: this.getFileType(extension),
+              type: getFileType(extension),
             });
           }
         }
@@ -340,30 +312,6 @@ class QuickTossApp {
       console.error("Error scanning folder:", error);
       throw error;
     }
-  }
-
-  private getFileType(extension: string): "image" | "document" | "video" | "other" {
-    const imageExts = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".bmp", ".tiff"];
-    const docExts = [
-      ".pdf",
-      ".txt",
-      ".rtf",
-      ".md",
-      ".log",
-      ".json",
-      ".xml",
-      ".csv",
-      ".yaml",
-      ".yml",
-      ".doc",
-      ".docx",
-    ];
-    const videoExts = [".mp4", ".mov", ".avi"];
-
-    if (imageExts.includes(extension)) return "image";
-    if (docExts.includes(extension)) return "document";
-    if (videoExts.includes(extension)) return "video";
-    return "other";
   }
 }
 

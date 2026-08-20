@@ -44,6 +44,10 @@ The renderer never touches the filesystem directly — everything goes through I
 | `npm run dist` | Build and package installers without publishing |
 | `npm run build:mac` | Build and package for macOS |
 | `npm run build:icons` | Regenerate all icon formats from `assets/icon.svg` |
+| `npm test` | Run the test suite once |
+| `npm run test:watch` | Re-run tests as files change |
+| `npm run test:coverage` | Run tests with a coverage report |
+| `npm run typecheck` | Typecheck the renderer, main process, and tests |
 | `npm run lint` | Biome lint |
 | `npm run check` | Biome lint + format check |
 | `npm run check:fix` | Apply Biome fixes |
@@ -51,6 +55,21 @@ The renderer never touches the filesystem directly — everything goes through I
 ## Code style
 
 Formatting and linting are handled by [Biome](https://biomejs.dev). CI runs `npm run lint` and `npm run check` as **blocking** steps, so run `npm run check:fix` before pushing.
+
+## Tests
+
+Tests run on [Vitest](https://vitest.dev) with Testing Library, in a jsdom environment. Test files sit next to the code they cover as `*.test.ts` / `*.test.tsx`, and CI runs them as a blocking step.
+
+```bash
+npm test              # once
+npm run test:watch    # while developing
+```
+
+Coverage is partial by design — the suite currently covers file-type classification, the formatting helpers, and the update notifier. Extending it is tracked in [#9](https://github.com/killerwolf/QuickToss/issues/9); good next targets are the undo stack and settings persistence.
+
+Logic worth testing should live outside `electron/main.ts`, which instantiates the app at import time and can't be loaded from a test. `electron/file-types.ts` is the pattern to follow: pure functions the main process calls, importable on their own.
+
+Note that `tsconfig.main.json` excludes `*.test.ts` so tests never end up in the packaged app; `tsconfig.test.json` typechecks them instead.
 
 ## Icons
 
