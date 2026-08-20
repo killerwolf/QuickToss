@@ -1,174 +1,79 @@
 # QuickToss
 
-A Tinder-like file organization tool that gamifies the process of cleaning up cluttered folders. Swipe through your files quickly and efficiently - left to delete, right to keep!
+Clean out a cluttered folder the way you'd swipe through a dating app: one file at a time, left to toss, right to keep.
 
-## Features
+Point QuickToss at a folder — `Downloads` is the usual suspect — and it shows you each file with a preview so you can decide in a second. Deleted files go to the system Trash, and every action can be undone, so there's nothing to be nervous about.
 
-✅ **Core Features:**
-- **Folder Selection**: Choose any folder on your system to organize
-- **File Previews**: See images, documents, and more before deciding
-- **Swipe Interface**: Familiar gesture-based interaction with smooth animations
-- **Keyboard Shortcuts**: Full keyboard support for power users
-- **Move to Trash**: Files are moved to system trash (reversible, not permanently deleted)
-- **Undo System**: Reverse any action with Cmd+Z and full history tracking
-- **Progress Tracking**: Visual progress through your file collection with statistics
-- **Session Summary**: Detailed completion statistics with encouragement
-- **Cross-Platform**: Works on Windows, macOS, and Linux
+## Download
 
-✅ **User Experience:**
-- **Beautiful UI**: Modern design with Tailwind CSS
-- **Responsive Design**: Adapts to different screen sizes
-- **Touch & Mouse Support**: Works with both gesture and click interactions
-- **File Metadata**: Display file details, size, and modification dates
-- **Visual Feedback**: Clear animations and confirmations for all actions
-- **Accessibility**: Designed with accessibility best practices
+Grab the latest version from the [releases page](https://github.com/killerwolf/QuickToss/releases/latest).
 
-## Supported File Types
+QuickToss currently ships for **macOS** only:
 
-- **Images**: JPEG, PNG, GIF, HEIC, WebP, BMP, TIFF
-- **Documents**: PDF, TXT, RTF, MD
-- **Future**: Videos, Office documents, and more
+| Your Mac | Download |
+| --- | --- |
+| Apple Silicon (M1/M2/M3/M4) | `QuickToss-<version>-arm64.dmg` |
+| Intel | `QuickToss-<version>-x64.dmg` |
 
-## Installation
+Not sure which you have?  → About This Mac. "Apple M…" means Apple Silicon.
 
-### Prerequisites
-- Node.js 16 or higher
-- npm or yarn
+### First launch: "QuickToss.app is damaged"
 
-### Development Setup
+If macOS refuses to open the app with a message saying it's damaged, the app isn't actually broken — QuickToss isn't signed with a paid Apple Developer certificate yet, and macOS blocks unsigned apps downloaded from the internet.
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd quicktoss
-   ```
+To allow it, run this once in Terminal:
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-### Building for Production
-
-1. Build the application:
-   ```bash
-   npm run build
-   ```
-
-2. Package the application:
-   ```bash
-   npm run pack
-   ```
-
-3. Create distribution packages:
-   ```bash
-   npm run dist
-   ```
-
-## Usage
-
-### Getting Started
-1. **Launch QuickToss** and you'll see a welcome screen with instructions
-2. **Click "Select Folder to Organize"** to choose any folder on your system
-3. **Review files** one by one using these controls:
-   - **Swipe Left** or **← key** or **Red button**: Delete file (moves to trash)
-   - **Swipe Right** or **→ key** or **Green button**: Keep file (skip)
-   - **Press I**: Toggle file details view
-   - **Cmd+Z/Ctrl+Z**: Undo last action
-4. **Complete the session** and view your cleanup statistics with encouragement!
-
-### Tips for Best Results
-- Start with your Downloads folder - it's usually the most cluttered
-- You can undo any action, so don't worry about mistakes
-- Files are moved to Trash, not permanently deleted
-- Use keyboard shortcuts for faster organization
-- Take breaks on long sessions - you can always resume later
-
-## Keyboard Shortcuts
-
-- `←` / `Backspace`: Delete current file
-- `→` / `Space`: Keep current file  
-- `I`: Toggle file metadata display
-- `Cmd+Z` / `Ctrl+Z`: Undo last action
-
-## Technology Stack
-
-- **Electron**: Cross-platform desktop app framework
-- **React**: User interface library
-- **TypeScript**: Type-safe development
-- **Vite**: Fast build tool and development server
-- **Tailwind CSS**: Utility-first CSS framework
-- **React Spring**: Smooth animations and gestures
-
-## Architecture
-
-```
-├── electron/           # Electron main process
-│   ├── main.ts        # Main application logic
-│   └── preload.ts     # Secure renderer bridge
-├── src/               # React renderer process
-│   ├── components/    # UI components
-│   ├── types.ts       # TypeScript definitions
-│   └── App.tsx        # Main application component
-├── docs/              # Project documentation
-└── dist/              # Built application files
+```bash
+xattr -cr /Applications/QuickToss.app
 ```
 
-## Security
+Then open the app normally. You'll need to repeat this after installing a new version. Removing this friction is tracked in [#7](https://github.com/killerwolf/QuickToss/issues/7).
 
-QuickToss is designed with security in mind:
-- **Sandboxed environment**: Uses Electron's security best practices
-- **No network access**: Your files never leave your computer
-- **System trash**: Files are moved to system trash, not permanently deleted
-- **Minimal permissions**: Only accesses user-selected folders
+### Updates
 
-## Troubleshooting
+QuickToss checks for new versions on launch and shows a notification when one is available. Installing is manual for now — the notification links to the release page. (Automatic in-place updates also need the code signing from [#7](https://github.com/killerwolf/QuickToss/issues/7).)
 
-### Common Issues
+## Using it
 
-1. **"No supported files found"**: Make sure your folder contains images, PDFs, or text files
-2. **App won't start**: Check that all dependencies are installed (`npm install`)
-3. **Build errors**: Try deleting `node_modules` and `package-lock.json`, then run `npm install` again
+1. Click **Select Folder to Organize** and pick a folder.
+2. For each file, decide:
+   - **Toss** — swipe left, press `←` or `Backspace`, or click the red button. The file goes to the Trash.
+   - **Keep** — swipe right, press `→` or `Space`, or click the green button. The file is left alone.
+3. When you reach the end, you get a summary of what you cleared.
 
-### Development Tips
+### Keyboard shortcuts
 
-- Use `npm run dev` for live development with hot reload
-- Check the browser dev tools (Cmd+Option+I) for debugging
-- The Electron main process logs appear in your terminal
-- React component issues can be debugged in the Electron dev tools
+| Key | Action |
+| --- | --- |
+| `←` or `Backspace` | Toss (move to Trash) |
+| `→` or `Space` | Keep |
+| `I` | Show/hide file details |
+| `Cmd+Z` | Undo the last action |
 
-## Future Enhancements
+### Tips
 
-🚀 **Ready to enhance your app?** Consider adding:
-- Video file preview support
-- Batch file operations (select multiple files)
-- Smart file suggestions with AI
-- Cloud storage integration (iCloud, Dropbox, etc.)
-- Custom file organization rules and filters
-- Advanced file metadata analysis
-- Duplicate file detection and removal
+- Start with `Downloads`. It's almost always the biggest win.
+- Don't overthink it — `Cmd+Z` undoes any decision.
+- Nothing is permanently deleted. Tossed files sit in your Trash until you empty it.
+
+## What it can preview
+
+- **Images** — JPEG, PNG, GIF, WebP, BMP, TIFF, HEIC
+- **Documents** — PDF, and plain-text formats (TXT, MD, RTF, LOG, JSON, XML, CSV, YAML)
+- **Video** — MP4, MOV, AVI
+
+Word, PowerPoint and spreadsheet files are picked up when scanning but don't have a real preview yet — richer previews are tracked in [#12](https://github.com/killerwolf/QuickToss/issues/12).
+
+## Your files stay yours
+
+- QuickToss makes no network requests with your files — everything happens locally. It only talks to GitHub to check whether a newer version exists.
+- Tossed files go to the system Trash, never a permanent delete.
+- It only reads the folder you explicitly choose.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/new-feature`
-3. Make your changes and commit: `git commit -am 'Add new feature'`
-4. Push to the branch: `git push origin feature/new-feature`
-5. Submit a pull request
+Setup, architecture, and the release process are in [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and ideas are welcome in [issues](https://github.com/killerwolf/QuickToss/issues).
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Support
-
-For support, please open an issue on the GitHub repository or contact the development team.
-
----
-
-**Made with ❤️ for cleaner file systems**
+MIT.
