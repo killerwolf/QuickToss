@@ -1,20 +1,18 @@
 import { AlertCircle, File, FileText, Film, Image as ImageIcon } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
-import "react-pdf/dist/esm/Page/TextLayer.css";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import type { PreviewProps } from "../types";
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// react-pdf bundles pdfjs-dist, which dominates the bundle. Loading it lazily
+// keeps it out of the initial download for the majority of files, which aren't
+// PDFs.
+const PdfPreview = lazy(() => import("./PdfPreview"));
 
 const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
   const [previewSrc, setPreviewSrc] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [textContent, setTextContent] = useState<string>("");
-  const [pdfPages, setPdfPages] = useState<number>(0);
   const [pdfBuffer, setPdfBuffer] = useState<ArrayBuffer | null>(null);
 
   const loadTextFile = useCallback(async () => {
@@ -56,7 +54,6 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
     setLoading(true);
     setError(false);
     setTextContent("");
-    setPdfPages(0);
     setPdfBuffer(null);
 
     // Handle different file types
@@ -104,9 +101,8 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
     setError(true);
   };
 
-  const onPdfLoadSuccess = ({ numPages }: { numPages: number }) => {
+  const onPdfLoadSuccess = (numPages: number) => {
     console.log("PDF loaded successfully, pages:", numPages);
-    setPdfPages(numPages);
     setLoading(false);
     setError(false);
   };
@@ -200,37 +196,17 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
       if (pdfBuffer) {
         console.log("Rendering PDF with buffer");
         return (
-          <div className="w-full h-full flex flex-col">
-            <div
-              className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-white rounded-lg shadow-lg"
-              style={{
-                maxHeight: "calc(100vh - 300px)",
-                scrollbarWidth: "thin",
-                scrollbarColor: "#cbd5e0 #f7fafc",
-              }}
-            >
-              <Document
-                file={pdfBuffer}
-                onLoadSuccess={onPdfLoadSuccess}
-                onLoadError={onPdfLoadError}
-                className="flex flex-col items-center space-y-4"
-              >
-                {Array.from(new Array(pdfPages), (_el, index) => (
-                  <Page
-                    key={`page_${index + 1}`}
-                    pageNumber={index + 1}
-                    width={Math.min(600, window.innerWidth - 100)}
-                    className="shadow-lg"
-                  />
-                ))}
-              </Document>
-            </div>
-            {pdfPages > 1 && (
-              <div className="flex items-center justify-center p-2 bg-gray-100 rounded-lg">
-                <span className="text-sm text-gray-600">{pdfPages} pages - Scroll to navigate</span>
-              </div>
-            )}
-          </div>
+          <Suspense
+            fallback={
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            }
+          >
+            <PdfPreview
+              buffer={pdfBuffer}
+              onLoadSuccess={onPdfLoadSuccess}
+              onLoadError={onPdfLoadError}
+            />
+          </Suspense>
         );
       } else {
         console.log("PDF buffer not loaded yet, showing loading state");
