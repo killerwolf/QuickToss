@@ -112,7 +112,8 @@
     "publish": {
       "provider": "github",
       "owner": "killerwolf",
-      "repo": "QuickToss"
+      "repo": "QuickToss",
+      "releaseType": "release"
     }
   }
 }
