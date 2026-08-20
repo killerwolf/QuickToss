@@ -23,8 +23,6 @@ export interface AppSettings {
 
 export type UpdateStatus =
   | { state: "available"; version: string }
-  | { state: "downloading"; percent: number }
-  | { state: "downloaded"; version: string }
   | { state: "error"; message: string };
 
 export interface ElectronAPI {
@@ -37,7 +35,7 @@ export interface ElectronAPI {
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: AppSettings) => Promise<void>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
-  quitAndInstall: () => Promise<void>;
+  openReleasePage: () => Promise<void>;
 }
 
 // Expose protected methods that allow the renderer process to use
@@ -56,7 +54,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("update-status", listener);
     return () => ipcRenderer.removeListener("update-status", listener);
   },
-  quitAndInstall: () => ipcRenderer.invoke("quit-and-install"),
+  openReleasePage: () => ipcRenderer.invoke("open-release-page"),
 } as ElectronAPI);
 
 // Type the global object

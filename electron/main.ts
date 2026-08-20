@@ -15,19 +15,27 @@ interface AppSettings {
   confirmDelete: boolean;
 }
 
-type UpdateStatus =
-  | { state: "available"; version: string }
-  | { state: "downloading"; percent: number }
-  | { state: "downloaded"; version: string }
-  | { state: "error"; message: string };
+type UpdateStatus = { state: "available"; version: string } | { state: "error"; message: string };
+
+const RELEASES_URL = "https://github.com/killerwolf/QuickToss/releases";
+
+interface UpdaterLogger {
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+}
 
 class QuickTossApp {
   private mainWindow: BrowserWindow | null = null;
   private isDev = process.env.NODE_ENV === "development";
   private settingsPath: string;
+  private updaterLogger: UpdaterLogger;
+  private availableUpdateVersion: string | null = null;
 
   constructor() {
     this.settingsPath = join(app.getPath("userData"), "settings.json");
+    this.updaterLogger = this.createUpdaterLogger();
     this.setupApp();
     this.setupIPC();
     this.setupAutoUpdater();
@@ -42,12 +50,6 @@ class QuickTossApp {
           this.createMainWindow();
         }
       });
-
-      if (!this.isDev) {
-        autoUpdater.checkForUpdates().catch((error) => {
-          console.error("Error checking for updates:", error);
-        });
-      }
     });
 
     app.on("window-all-closed", () => {
@@ -58,39 +60,47 @@ class QuickTossApp {
   }
 
   private setupAutoUpdater() {
-    // Downloads updates in the background; the renderer is only asked to
-    // restart once the download has finished.
-    autoUpdater.autoDownload = true;
-    autoUpdater.autoInstallOnAppQuit = true;
-    autoUpdater.logger = this.createUpdaterLogger();
+    // Installing an update in place needs a Developer ID signature: Squirrel.Mac
+    // rejects the downloaded bundle's signature on arm64, and on x64
+    // electron-updater can't even read a signature for the running app. Until
+    // the app is signed and notarized, we only *check* for updates and point
+    // the user at the releases page — downloading ~90MB just to fail at the
+    // install step would be worse than not downloading at all.
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = false;
+    const logger = this.updaterLogger;
+    autoUpdater.logger = logger;
+    logger.info(`Update check started (version ${app.getVersion()}, ${process.arch})`);
 
     const sendStatus = (status: UpdateStatus) => {
       this.mainWindow?.webContents.send("update-status", status);
     };
 
     autoUpdater.on("update-available", (info) => {
+      logger.info(`Update available: ${info.version}`);
+      this.availableUpdateVersion = info.version;
       sendStatus({ state: "available", version: info.version });
     });
 
-    autoUpdater.on("download-progress", (progress) => {
-      sendStatus({ state: "downloading", percent: progress.percent });
-    });
-
-    autoUpdater.on("update-downloaded", (info) => {
-      sendStatus({ state: "downloaded", version: info.version });
-    });
-
     autoUpdater.on("error", (error) => {
-      console.error("Auto-updater error:", error);
+      logger.error("Update check failed", error);
       sendStatus({ state: "error", message: error.message });
     });
   }
 
   private createUpdaterLogger() {
-    const logPath = join(app.getPath("logs"), "auto-updater.log");
+    // app.getPath("logs") points at ~/Library/Logs/QuickToss on macOS, but the
+    // directory isn't guaranteed to exist yet — without this the very first
+    // append throws ENOENT and every log line is silently lost.
+    const logDir = app.getPath("logs");
+    mkdirSync(logDir, { recursive: true });
+    const logPath = join(logDir, "auto-updater.log");
+
+    const format = (value: unknown) =>
+      value instanceof Error ? (value.stack ?? `${value.name}: ${value.message}`) : String(value);
 
     const write = (level: string, args: unknown[]) => {
-      const line = `[${new Date().toISOString()}] [${level}] ${args.map(String).join(" ")}\n`;
+      const line = `[${new Date().toISOString()}] [${level}] ${args.map(format).join(" ")}\n`;
       try {
         appendFileSync(logPath, line);
       } catch (error) {
@@ -136,6 +146,16 @@ class QuickTossApp {
 
     this.mainWindow.once("ready-to-show", () => {
       this.mainWindow?.show();
+    });
+
+    // Check only once the renderer is loaded and listening — the check can
+    // resolve in about a second, and a result sent before the renderer
+    // subscribes to "update-status" would be dropped and never shown.
+    this.mainWindow.webContents.once("did-finish-load", () => {
+      if (this.isDev) return;
+      autoUpdater.checkForUpdates().catch((error) => {
+        this.updaterLogger.error("Update check could not start", error);
+      });
     });
 
     this.mainWindow.on("closed", () => {
@@ -252,9 +272,15 @@ class QuickTossApp {
       }
     });
 
-    // Restart the app and install the downloaded update
-    ipcMain.handle("quit-and-install", () => {
-      autoUpdater.quitAndInstall();
+    // Open the release page so the user can download the update manually.
+    // The URL is built here rather than passed in from the renderer, so the
+    // renderer can't ask the main process to open an arbitrary link.
+    ipcMain.handle("open-release-page", async () => {
+      const url = this.availableUpdateVersion
+        ? `${RELEASES_URL}/tag/v${this.availableUpdateVersion}`
+        : `${RELEASES_URL}/latest`;
+      this.updaterLogger.info(`Opening release page: ${url}`);
+      await shell.openExternal(url);
     });
   }
 
