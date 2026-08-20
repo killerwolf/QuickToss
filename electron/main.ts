@@ -21,13 +21,22 @@ type UpdateStatus =
   | { state: "downloaded"; version: string }
   | { state: "error"; message: string };
 
+interface UpdaterLogger {
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+}
+
 class QuickTossApp {
   private mainWindow: BrowserWindow | null = null;
   private isDev = process.env.NODE_ENV === "development";
   private settingsPath: string;
+  private updaterLogger: UpdaterLogger;
 
   constructor() {
     this.settingsPath = join(app.getPath("userData"), "settings.json");
+    this.updaterLogger = this.createUpdaterLogger();
     this.setupApp();
     this.setupIPC();
     this.setupAutoUpdater();
@@ -62,7 +71,9 @@ class QuickTossApp {
     // restart once the download has finished.
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
-    autoUpdater.logger = this.createUpdaterLogger();
+    const logger = this.updaterLogger;
+    autoUpdater.logger = logger;
+    logger.info(`Auto-updater started (version ${app.getVersion()}, ${process.arch})`);
 
     const sendStatus = (status: UpdateStatus) => {
       this.mainWindow?.webContents.send("update-status", status);
@@ -81,16 +92,24 @@ class QuickTossApp {
     });
 
     autoUpdater.on("error", (error) => {
-      console.error("Auto-updater error:", error);
+      logger.error("Update failed", error);
       sendStatus({ state: "error", message: error.message });
     });
   }
 
   private createUpdaterLogger() {
-    const logPath = join(app.getPath("logs"), "auto-updater.log");
+    // app.getPath("logs") points at ~/Library/Logs/QuickToss on macOS, but the
+    // directory isn't guaranteed to exist yet — without this the very first
+    // append throws ENOENT and every log line is silently lost.
+    const logDir = app.getPath("logs");
+    mkdirSync(logDir, { recursive: true });
+    const logPath = join(logDir, "auto-updater.log");
+
+    const format = (value: unknown) =>
+      value instanceof Error ? (value.stack ?? `${value.name}: ${value.message}`) : String(value);
 
     const write = (level: string, args: unknown[]) => {
-      const line = `[${new Date().toISOString()}] [${level}] ${args.map(String).join(" ")}\n`;
+      const line = `[${new Date().toISOString()}] [${level}] ${args.map(format).join(" ")}\n`;
       try {
         appendFileSync(logPath, line);
       } catch (error) {
@@ -254,7 +273,17 @@ class QuickTossApp {
 
     // Restart the app and install the downloaded update
     ipcMain.handle("quit-and-install", () => {
-      autoUpdater.quitAndInstall();
+      // Logged on both sides of the call: if "calling quitAndInstall" appears
+      // without the app actually restarting, the failure is inside Squirrel,
+      // not in the IPC wiring.
+      this.updaterLogger.info("Restart requested, calling quitAndInstall()");
+      try {
+        autoUpdater.quitAndInstall();
+        this.updaterLogger.info("quitAndInstall() returned without throwing");
+      } catch (error) {
+        this.updaterLogger.error("quitAndInstall() threw", error);
+        throw error;
+      }
     });
   }
 
