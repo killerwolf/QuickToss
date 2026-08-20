@@ -10,7 +10,8 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '20'
+  # 'lts/*' always resolves to the latest Node.js LTS on the runner.
+  NODE_VERSION: 'lts/*'
 
 jobs:
   test:
@@ -19,10 +20,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -56,10 +57,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -68,7 +69,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           echo "Setting app version to ${{ github.ref_name }}"
-          npm version ${{ github.ref_name }} --no-git-tag-version
+          npm version ${{ github.ref_name }} --no-git-tag-version --allow-same-version
 
       - name: Install dependencies
         run: npm ci
