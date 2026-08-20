@@ -34,9 +34,11 @@ export interface PreviewProps {
 }
 
 export const formatFileSize = (bytes: number): string => {
-  const sizes = ["B", "KB", "MB", "GB"];
-  if (bytes === 0) return "0 B";
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  // Clamp: without this, anything >= 1TB indexed past the end of the array and
+  // rendered as "1 undefined".
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
   return `${Math.round((bytes / 1024 ** i) * 100) / 100} ${sizes[i]}`;
 };
 
