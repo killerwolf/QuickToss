@@ -12,8 +12,10 @@
     "build:vite": "vite build",
     "build:electron": "tsc -p tsconfig.main.json",
     "build:icons": "node scripts/build-icons.js",
-    "pack": "npm run build && electron-builder",
+    "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder --publish=never",
+    "build:mac": "npm run build && electron-builder --mac",
+    "publish:mac": "npm run build && electron-builder --mac --publish always",
     "postinstall": "electron-builder install-app-deps",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
@@ -71,15 +73,28 @@
     ],
     "mac": {
       "target": [
-        "dmg",
-        "zip"
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "category": "public.app-category.productivity",
-      "artifactName": "${productName}-${version}-universal.${ext}",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
       "hardenedRuntime": true,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
+      "entitlements": "assets/build/entitlements.mac.plist",
+      "entitlementsInherit": "assets/build/entitlements.mac.plist",
       "gatekeeperAssess": false,
+      "notarize": false,
       "icon": "assets/icon.icns"
     },
     "win": {

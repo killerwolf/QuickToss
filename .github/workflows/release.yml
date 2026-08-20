@@ -7,31 +7,28 @@ on:
   pull_request:
     branches:
       - '**'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
-  build:
+  test:
+    name: Lint and Test Build
     runs-on: macos-latest
-    env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      APP_VERSION: ${{ github.ref_name }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
-      - name: Set app version
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          echo "Setting app version to $APP_VERSION"
-          npm version ${{ github.ref_name }} --no-git-tag-version
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run linter
         run: npm run lint
@@ -41,10 +38,54 @@ jobs:
         run: npm run check
         continue-on-error: true
 
+      - name: Test build (compile + pack only)
+        run: npm run pack
+
+  build:
+    name: Build & Publish macOS (Intel + Apple Silicon)
+    runs-on: macos-latest
+    needs: test
+    # Runs on a version tag push (v*) or when triggered manually from any branch.
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    env:
+      # Uses the token GitHub provides automatically — no personal token needed
+      # to publish releases to this same repository.
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Set app version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "Setting app version to ${{ github.ref_name }}"
+          npm version ${{ github.ref_name }} --no-git-tag-version
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build the app
         run: npm run build
 
-      - name: Package the app
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          npx electron-builder --mac --universal --publish always
+      - name: Package & publish (x64 + arm64)
+        run: npx electron-builder --mac --x64 --arm64 --publish always
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: quicktoss-mac
+          path: |
+            release/**/*.dmg
+            release/**/*.zip
+            release/**/*.yml
+          retention-days: 30
+          if-no-files-found: ignore
