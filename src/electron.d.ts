@@ -13,12 +13,20 @@ export interface FileStats {
   created: Date;
 }
 
+export type UpdateStatus =
+  | { state: "available"; version: string }
+  | { state: "downloading"; percent: number }
+  | { state: "downloaded"; version: string }
+  | { state: "error"; message: string };
+
 export interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
   scanFolder: (folderPath: string) => Promise<FileItem[]>;
   moveToTrash: (filePath: string) => Promise<boolean>;
   getFileStats: (filePath: string) => Promise<FileStats | null>;
   fileExists: (filePath: string) => Promise<boolean>;
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
+  quitAndInstall: () => Promise<void>;
 }
 
 declare global {

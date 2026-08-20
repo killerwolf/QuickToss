@@ -21,6 +21,12 @@ export interface AppSettings {
   confirmDelete: boolean;
 }
 
+export type UpdateStatus =
+  | { state: "available"; version: string }
+  | { state: "downloading"; percent: number }
+  | { state: "downloaded"; version: string }
+  | { state: "error"; message: string };
+
 export interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
   scanFolder: (folderPath: string) => Promise<FileItem[]>;
@@ -30,6 +36,8 @@ export interface ElectronAPI {
   readFileAsBuffer: (filePath: string) => Promise<ArrayBuffer>;
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: AppSettings) => Promise<void>;
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
+  quitAndInstall: () => Promise<void>;
 }
 
 // Expose protected methods that allow the renderer process to use
@@ -43,6 +51,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   readFileAsBuffer: (filePath: string) => ipcRenderer.invoke("read-file-as-buffer", filePath),
   getSettings: () => ipcRenderer.invoke("get-settings"),
   saveSettings: (settings: AppSettings) => ipcRenderer.invoke("save-settings", settings),
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => {
+    const listener = (_: unknown, status: UpdateStatus) => callback(status);
+    ipcRenderer.on("update-status", listener);
+    return () => ipcRenderer.removeListener("update-status", listener);
+  },
+  quitAndInstall: () => ipcRenderer.invoke("quit-and-install"),
 } as ElectronAPI);
 
 // Type the global object
