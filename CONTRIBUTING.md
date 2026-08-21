@@ -108,6 +108,10 @@ Publishing uses the `GITHUB_TOKEN` that Actions provides automatically — no pe
 
 Pull requests run lint, format check, and a packaging smoke test, but never publish.
 
+## Known constraint: react-pdf is pinned
+
+`react-pdf` is held at 6.2.2 (with `pdfjs-dist` 3.11.174) on purpose. Newer versions fail at runtime with `Promise.withResolvers is not a function` under the Electron/Node version this app ships. Upgrading either one means verifying a PDF still previews in a packaged build, not just that it compiles.
+
 ## Known constraint: unsigned builds
 
 QuickToss isn't signed with an Apple Developer ID or notarized, which has two consequences:
