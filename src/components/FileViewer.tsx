@@ -7,7 +7,7 @@ import SettingsComponent from "./Settings";
 
 interface FileViewerProps {
   sessionState: SessionState;
-  onFileAction: (action: "delete" | "keep", fileIndex: number) => void;
+  onFileAction: (action: "delete" | "keep") => Promise<void>;
   onUndo: () => void;
   onBack: () => void;
 }
@@ -172,12 +172,19 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
       playActionSound(action);
 
       // Trigger action after brief delay for feedback
-      setTimeout(() => {
-        onFileAction(action, currentIndex);
+      setTimeout(async () => {
+        try {
+          await onFileAction(action);
+        } catch (error) {
+          console.error(`Error performing ${action}:`, error);
+          window.alert(
+            `Couldn't ${action === "delete" ? "delete" : "keep"} "${currentFile.name}". Please try again.`
+          );
+        }
         setActionFeedback({ show: false, type: action });
       }, 200);
     },
-    [onFileAction, currentIndex, playActionSound, settings.confirmDelete, currentFile.name]
+    [onFileAction, playActionSound, settings.confirmDelete, currentFile.name]
   );
 
   // Keyboard shortcuts

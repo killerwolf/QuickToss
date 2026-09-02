@@ -1,23 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CompletionScreen from "./components/CompletionScreen";
 import FileViewer from "./components/FileViewer";
 import UpdateNotifier from "./components/UpdateNotifier";
 import WelcomeScreen from "./components/WelcomeScreen";
-import type { SessionState } from "./types";
+import { useFileSession } from "./hooks/useFileSession";
 import "./electron.d.ts";
 
 type AppState = "welcome" | "viewing" | "completed";
 
 function App() {
   const [appState, setAppState] = useState<AppState>("welcome");
-  const [sessionState, setSessionState] = useState<SessionState>({
-    files: [],
-    currentIndex: 0,
-    deletedFiles: [],
-    keptFiles: [],
-    folderPath: "",
-    undoStack: [],
-  });
+  const { sessionState, isComplete, startSession, keep, deleteFile, undo, reset } =
+    useFileSession();
+
+  // Moves to the completion screen once the session actually reports itself
+  // done, rather than the caller re-deriving that from currentIndex/files.
+  useEffect(() => {
+    if (isComplete && appState === "viewing") {
+      setAppState("completed");
+    }
+  }, [isComplete, appState]);
 
   const handleFolderSelected = async (folderPath: string) => {
     try {
@@ -28,14 +30,7 @@ function App() {
         return;
       }
 
-      setSessionState({
-        files,
-        currentIndex: 0,
-        deletedFiles: [],
-        keptFiles: [],
-        folderPath,
-        undoStack: [],
-      });
+      startSession(files, folderPath);
       setAppState("viewing");
     } catch (error) {
       console.error("Error scanning folder:", error);
@@ -43,66 +38,16 @@ function App() {
     }
   };
 
-  const handleFileAction = (action: "delete" | "keep", fileIndex: number) => {
-    const file = sessionState.files[fileIndex];
-
-    setSessionState((prev) => {
-      const newState = { ...prev };
-
-      // Add to undo stack
-      newState.undoStack.push({
-        action,
-        fileIndex,
-        file,
-      });
-
-      // Update appropriate array
-      if (action === "delete") {
-        newState.deletedFiles.push(file);
-        // Actually move file to trash
-        window.electronAPI.moveToTrash(file.path).catch(console.error);
-      } else {
-        newState.keptFiles.push(file);
-      }
-
-      // Move to next file
-      newState.currentIndex = fileIndex + 1;
-
-      return newState;
-    });
-
-    // Check if we've processed all files
-    if (fileIndex + 1 >= sessionState.files.length) {
-      setAppState("completed");
+  const handleFileAction = async (action: "delete" | "keep") => {
+    if (action === "delete") {
+      await deleteFile();
+    } else {
+      keep();
     }
   };
 
-  const handleUndo = async () => {
-    if (sessionState.undoStack.length === 0) return;
-
-    const lastAction = sessionState.undoStack[sessionState.undoStack.length - 1];
-
-    setSessionState((prev) => {
-      const newState = { ...prev };
-
-      // Remove from undo stack
-      newState.undoStack.pop();
-
-      // Reverse the action
-      if (lastAction.action === "delete") {
-        newState.deletedFiles = newState.deletedFiles.filter(
-          (f) => f.path !== lastAction.file.path
-        );
-        // Note: We can't restore from trash automatically, but we remove from deleted list
-      } else {
-        newState.keptFiles = newState.keptFiles.filter((f) => f.path !== lastAction.file.path);
-      }
-
-      // Go back to previous file
-      newState.currentIndex = lastAction.fileIndex;
-
-      return newState;
-    });
+  const handleUndo = () => {
+    undo();
 
     // If we undid from completion screen, go back to viewing
     if (appState === "completed") {
@@ -111,14 +56,7 @@ function App() {
   };
 
   const handleStartOver = () => {
-    setSessionState({
-      files: [],
-      currentIndex: 0,
-      deletedFiles: [],
-      keptFiles: [],
-      folderPath: "",
-      undoStack: [],
-    });
+    reset();
     setAppState("welcome");
   };
 
