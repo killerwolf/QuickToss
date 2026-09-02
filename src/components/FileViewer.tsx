@@ -1,13 +1,20 @@
 import { ArrowLeft, CheckCircle, Eye, RotateCcw, Settings, XCircle } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import { type AppSettings, formatDate, formatFileSize, type SessionState } from "../types";
+import { playActionSound } from "../sound";
+import {
+  type AppSettings,
+  type FileAction,
+  formatDate,
+  formatFileSize,
+  type SessionState,
+} from "../types";
 import FilePreview from "./FilePreview";
 import SettingsComponent from "./Settings";
 
 interface FileViewerProps {
   sessionState: SessionState;
-  onFileAction: (action: "delete" | "keep") => Promise<void>;
+  onFileAction: (action: FileAction) => Promise<void>;
   onUndo: () => void;
   onBack: () => void;
 }
@@ -25,7 +32,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
   });
   const [actionFeedback, setActionFeedback] = useState<{
     show: boolean;
-    type: "delete" | "keep";
+    type: FileAction;
   }>({ show: false, type: "delete" });
 
   // Load settings on component mount
@@ -50,115 +57,8 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
     }
   }, []);
 
-  const playActionSound = useCallback(
-    (action: "delete" | "keep") => {
-      if (!settings.soundEffects) return;
-
-      // Create audio context for sound feedback
-      try {
-        const audioContext = new (
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-        )();
-
-        if (action === "delete") {
-          // Delete sound: Descending "whoosh" effect (like something being thrown away)
-          const oscillator1 = audioContext.createOscillator();
-          const oscillator2 = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          const filter = audioContext.createBiquadFilter();
-
-          // Connect: oscillators -> filter -> gain -> destination
-          oscillator1.connect(filter);
-          oscillator2.connect(filter);
-          filter.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-
-          // Two oscillators for richer sound
-          oscillator1.frequency.setValueAtTime(300, audioContext.currentTime);
-          oscillator1.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.3);
-          oscillator1.type = "sawtooth";
-
-          oscillator2.frequency.setValueAtTime(200, audioContext.currentTime);
-          oscillator2.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.3);
-          oscillator2.type = "triangle";
-
-          // Low-pass filter for "whoosh" effect
-          filter.type = "lowpass";
-          filter.frequency.setValueAtTime(800, audioContext.currentTime);
-          filter.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
-
-          // Volume envelope
-          gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-
-          oscillator1.start(audioContext.currentTime);
-          oscillator1.stop(audioContext.currentTime + 0.3);
-          oscillator2.start(audioContext.currentTime);
-          oscillator2.stop(audioContext.currentTime + 0.3);
-        } else {
-          // Keep sound: Ascending "chime" effect (like a positive confirmation)
-          const oscillator1 = audioContext.createOscillator();
-          const oscillator2 = audioContext.createOscillator();
-          const oscillator3 = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          const filter = audioContext.createBiquadFilter();
-
-          // Connect: oscillators -> filter -> gain -> destination
-          oscillator1.connect(filter);
-          oscillator2.connect(filter);
-          oscillator3.connect(filter);
-          filter.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-
-          // Three oscillators for a pleasant chord
-          oscillator1.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-          oscillator1.frequency.exponentialRampToValueAtTime(
-            659.25,
-            audioContext.currentTime + 0.2
-          ); // E5
-          oscillator1.type = "sine";
-
-          oscillator2.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
-          oscillator2.frequency.exponentialRampToValueAtTime(
-            783.99,
-            audioContext.currentTime + 0.2
-          ); // G5
-          oscillator2.type = "sine";
-
-          oscillator3.frequency.setValueAtTime(783.99, audioContext.currentTime); // G5
-          oscillator3.frequency.exponentialRampToValueAtTime(
-            1046.5,
-            audioContext.currentTime + 0.2
-          ); // C6
-          oscillator3.type = "sine";
-
-          // High-pass filter for bright, clear sound
-          filter.type = "highpass";
-          filter.frequency.setValueAtTime(400, audioContext.currentTime);
-
-          // Volume envelope with quick attack and decay
-          gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-          gainNode.gain.linearRampToValueAtTime(0.12, audioContext.currentTime + 0.05);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
-
-          oscillator1.start(audioContext.currentTime);
-          oscillator1.stop(audioContext.currentTime + 0.25);
-          oscillator2.start(audioContext.currentTime);
-          oscillator2.stop(audioContext.currentTime + 0.25);
-          oscillator3.start(audioContext.currentTime);
-          oscillator3.stop(audioContext.currentTime + 0.25);
-        }
-      } catch (_error) {
-        // Silently fail if audio context is not available
-        console.log("Audio feedback not available");
-      }
-    },
-    [settings.soundEffects]
-  );
-
   const performAction = useCallback(
-    async (action: "delete" | "keep") => {
+    async (action: FileAction) => {
       // Check if we need confirmation for delete
       if (action === "delete" && settings.confirmDelete) {
         const confirmed = window.confirm(`Are you sure you want to delete "${currentFile.name}"?`);
@@ -169,7 +69,9 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
       setActionFeedback({ show: true, type: action });
 
       // Play audio feedback
-      playActionSound(action);
+      if (settings.soundEffects) {
+        playActionSound(action);
+      }
 
       // Trigger action after brief delay for feedback
       setTimeout(async () => {
@@ -184,7 +86,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ sessionState, onFileAction, onU
         setActionFeedback({ show: false, type: action });
       }, 200);
     },
-    [onFileAction, playActionSound, settings.confirmDelete, currentFile.name]
+    [onFileAction, settings.confirmDelete, settings.soundEffects, currentFile.name]
   );
 
   // Keyboard shortcuts

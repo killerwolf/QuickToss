@@ -4,6 +4,7 @@ import FileViewer from "./components/FileViewer";
 import UpdateNotifier from "./components/UpdateNotifier";
 import WelcomeScreen from "./components/WelcomeScreen";
 import { useFileSession } from "./hooks/useFileSession";
+import type { FileAction } from "./types";
 import "./electron.d.ts";
 
 type AppState = "welcome" | "viewing" | "completed";
@@ -38,7 +39,7 @@ function App() {
     }
   };
 
-  const handleFileAction = async (action: "delete" | "keep") => {
+  const handleFileAction = async (action: FileAction) => {
     if (action === "delete") {
       await deleteFile();
     } else {

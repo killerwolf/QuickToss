@@ -4,8 +4,10 @@ import type { FileItem } from "../electron/ipc-types";
 
 export type { AppSettings, FileItem } from "../electron/ipc-types";
 
+export type FileAction = "delete" | "keep";
+
 export interface UndoAction {
-  action: "delete" | "keep";
+  action: FileAction;
   fileIndex: number;
   file: FileItem;
 }
