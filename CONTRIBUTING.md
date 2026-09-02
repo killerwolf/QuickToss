@@ -20,7 +20,12 @@ npm run dev
 
 ```
 electron/          Electron main process
-  main.ts          Window, IPC handlers, folder scanning, update check
+  main.ts          Window lifecycle, wires IPC handlers to the modules below
+  file-operations.ts  Folder scanning, trash, file stats/reads
+  settings-store.ts   Settings persistence
+  updater.ts       Auto-updater orchestration, its file logger, release page
+  ipc-types.ts     Shared IPC contract (types + channel names)
+  ipc-register.ts  Wires IPC handlers to their channel names
   preload.ts       contextBridge API exposed to the renderer
 src/               React renderer
   components/      UI components
@@ -65,9 +70,9 @@ npm test              # once
 npm run test:watch    # while developing
 ```
 
-Coverage is partial by design — the suite currently covers file-type classification, the formatting helpers, and the update notifier. Extending it is tracked in [#9](https://github.com/killerwolf/QuickToss/issues/9); good next targets are the undo stack and settings persistence.
+Coverage is partial by design — the suite currently covers file-type classification, the formatting helpers, file operations, settings persistence, and the update notifier. Extending it is tracked in [#9](https://github.com/killerwolf/QuickToss/issues/9); the undo stack (`src/App.tsx`) is next.
 
-Logic worth testing should live outside `electron/main.ts`, which instantiates the app at import time and can't be loaded from a test. `electron/file-types.ts` is the pattern to follow: pure functions the main process calls, importable on their own.
+Logic worth testing should live outside `electron/main.ts`, which instantiates the app at import time and can't be loaded from a test. `electron/file-types.ts`, `electron/file-operations.ts`, and `electron/settings-store.ts` are the pattern to follow: pure functions (or a factory taking its dependencies as parameters) the main process calls, importable on their own.
 
 Note that `tsconfig.main.json` excludes `*.test.ts` so tests never end up in the packaged app; `tsconfig.test.json` typechecks them instead.
 
