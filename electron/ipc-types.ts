@@ -45,3 +45,24 @@ export interface ElectronAPI {
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
   openReleasePage: () => Promise<void>;
 }
+
+// Wire names for every channel in ElectronAPI, keyed the same way, so main.ts
+// and preload.ts can't drift apart: `satisfies` fails to compile the moment a
+// channel is added to ElectronAPI without a name here, or vice versa.
+export const CHANNELS = {
+  selectFolder: "select-folder",
+  scanFolder: "scan-folder",
+  moveToTrash: "move-to-trash",
+  getFileStats: "get-file-stats",
+  fileExists: "file-exists",
+  readFileAsBuffer: "read-file-as-buffer",
+  getSettings: "get-settings",
+  saveSettings: "save-settings",
+  onUpdateStatus: "update-status",
+  openReleasePage: "open-release-page",
+} as const satisfies Record<keyof ElectronAPI, string>;
+
+// The request/response subset of ElectronAPI: everything main.ts answers via
+// ipcMain.handle. onUpdateStatus is a main-to-renderer push instead, sent
+// directly via webContents.send, so it's excluded here.
+export type RequestAPI = Omit<ElectronAPI, "onUpdateStatus">;

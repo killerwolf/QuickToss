@@ -1,10 +1,17 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, dialog, shell } from "electron";
 import { autoUpdater } from "electron-updater";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
 import { getFileType, isSupportedExtension } from "./file-types";
-import type { AppSettings, FileItem, UpdateStatus } from "./ipc-types";
+import { registerHandlers } from "./ipc-register";
+import {
+  type AppSettings,
+  CHANNELS,
+  type FileItem,
+  type RequestAPI,
+  type UpdateStatus,
+} from "./ipc-types";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require("electron-squirrel-startup")) {
@@ -67,7 +74,7 @@ class QuickTossApp {
     logger.info(`Update check started (version ${app.getVersion()}, ${process.arch})`);
 
     const sendStatus = (status: UpdateStatus) => {
-      this.mainWindow?.webContents.send("update-status", status);
+      this.mainWindow?.webContents.send(CHANNELS.onUpdateStatus, status);
     };
 
     autoUpdater.on("update-available", (info) => {
@@ -158,124 +165,127 @@ class QuickTossApp {
   }
 
   private setupIPC() {
-    // Select folder dialog
-    ipcMain.handle("select-folder", async () => {
-      if (!this.mainWindow) return null;
+    const handlers: RequestAPI = {
+      // Select folder dialog
+      selectFolder: async () => {
+        if (!this.mainWindow) return null;
 
-      const result = await dialog.showOpenDialog(this.mainWindow, {
-        properties: ["openDirectory"],
-        title: "Select folder to organize",
-      });
+        const result = await dialog.showOpenDialog(this.mainWindow, {
+          properties: ["openDirectory"],
+          title: "Select folder to organize",
+        });
 
-      return result.canceled ? null : result.filePaths[0];
-    });
+        return result.canceled ? null : result.filePaths[0];
+      },
 
-    // Scan folder for files
-    ipcMain.handle("scan-folder", async (_, folderPath: string) => {
-      try {
-        const files = await this.scanFolder(folderPath);
-        return files;
-      } catch (error) {
-        console.error("Error scanning folder:", error);
-        throw error;
-      }
-    });
+      // Scan folder for files
+      scanFolder: async (folderPath: string) => {
+        try {
+          const files = await this.scanFolder(folderPath);
+          return files;
+        } catch (error) {
+          console.error("Error scanning folder:", error);
+          throw error;
+        }
+      },
 
-    // Move file to trash
-    ipcMain.handle("move-to-trash", async (_, filePath: string) => {
-      try {
-        await shell.trashItem(filePath);
-        return true;
-      } catch (error) {
-        console.error("Error moving to trash:", error);
-        throw error;
-      }
-    });
+      // Move file to trash
+      moveToTrash: async (filePath: string) => {
+        try {
+          await shell.trashItem(filePath);
+          return true;
+        } catch (error) {
+          console.error("Error moving to trash:", error);
+          throw error;
+        }
+      },
 
-    // Get file stats
-    ipcMain.handle("get-file-stats", async (_, filePath: string) => {
-      try {
-        const stats = await stat(filePath);
-        return {
-          size: stats.size,
-          modified: stats.mtime,
-          created: stats.birthtime,
-        };
-      } catch (error) {
-        console.error("Error getting file stats:", error);
-        return null;
-      }
-    });
+      // Get file stats
+      getFileStats: async (filePath: string) => {
+        try {
+          const stats = await stat(filePath);
+          return {
+            size: stats.size,
+            modified: stats.mtime,
+            created: stats.birthtime,
+          };
+        } catch (error) {
+          console.error("Error getting file stats:", error);
+          return null;
+        }
+      },
 
-    // Check if file exists
-    ipcMain.handle("file-exists", async (_, filePath: string) => {
-      return existsSync(filePath);
-    });
+      // Check if file exists
+      fileExists: async (filePath: string) => {
+        return existsSync(filePath);
+      },
 
-    // Read file as buffer for PDF preview
-    ipcMain.handle("read-file-as-buffer", async (_, filePath: string) => {
-      try {
-        const buffer = readFileSync(filePath);
-        return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-      } catch (error) {
-        console.error("Error reading file as buffer:", error);
-        throw error;
-      }
-    });
+      // Read file as buffer for PDF preview
+      readFileAsBuffer: async (filePath: string) => {
+        try {
+          const buffer = readFileSync(filePath);
+          return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        } catch (error) {
+          console.error("Error reading file as buffer:", error);
+          throw error;
+        }
+      },
 
-    // Get app settings
-    ipcMain.handle("get-settings", async () => {
-      try {
-        if (existsSync(this.settingsPath)) {
-          const settingsData = readFileSync(this.settingsPath, "utf8");
-          return JSON.parse(settingsData);
-        } else {
-          // Return default settings
-          const defaultSettings: AppSettings = {
+      // Get app settings
+      getSettings: async () => {
+        try {
+          if (existsSync(this.settingsPath)) {
+            const settingsData = readFileSync(this.settingsPath, "utf8");
+            return JSON.parse(settingsData);
+          } else {
+            // Return default settings
+            const defaultSettings: AppSettings = {
+              soundEffects: true,
+              videoAutoplay: false,
+              confirmDelete: true,
+            };
+            return defaultSettings;
+          }
+        } catch (error) {
+          console.error("Error reading settings:", error);
+          // Return default settings on error
+          return {
             soundEffects: true,
             videoAutoplay: false,
             confirmDelete: true,
           };
-          return defaultSettings;
         }
-      } catch (error) {
-        console.error("Error reading settings:", error);
-        // Return default settings on error
-        return {
-          soundEffects: true,
-          videoAutoplay: false,
-          confirmDelete: true,
-        };
-      }
-    });
+      },
 
-    // Save app settings
-    ipcMain.handle("save-settings", async (_, settings: AppSettings) => {
-      try {
-        // Ensure userData directory exists
-        const userDataDir = app.getPath("userData");
-        if (!existsSync(userDataDir)) {
-          mkdirSync(userDataDir, { recursive: true });
+      // Save app settings
+      saveSettings: async (settings: AppSettings) => {
+        try {
+          // Ensure userData directory exists
+          const userDataDir = app.getPath("userData");
+          if (!existsSync(userDataDir)) {
+            mkdirSync(userDataDir, { recursive: true });
+          }
+
+          writeFileSync(this.settingsPath, JSON.stringify(settings, null, 2));
+        } catch (error) {
+          console.error("Error saving settings:", error);
+          throw error;
         }
+      },
 
-        writeFileSync(this.settingsPath, JSON.stringify(settings, null, 2));
-        return true;
-      } catch (error) {
-        console.error("Error saving settings:", error);
-        throw error;
-      }
-    });
+      // Open the release page so the user can download the update manually.
+      // The URL is built here rather than passed in from the renderer, so the
+      // renderer can't ask the main process to open an arbitrary link.
+      openReleasePage: async () => {
+        const url = this.availableUpdateVersion
+          ? `${RELEASES_URL}/tag/v${this.availableUpdateVersion}`
+          : `${RELEASES_URL}/latest`;
+        this.updaterLogger.info(`Opening release page: ${url}`);
+        await shell.openExternal(url);
+      },
+    };
 
-    // Open the release page so the user can download the update manually.
-    // The URL is built here rather than passed in from the renderer, so the
-    // renderer can't ask the main process to open an arbitrary link.
-    ipcMain.handle("open-release-page", async () => {
-      const url = this.availableUpdateVersion
-        ? `${RELEASES_URL}/tag/v${this.availableUpdateVersion}`
-        : `${RELEASES_URL}/latest`;
-      this.updaterLogger.info(`Opening release page: ${url}`);
-      await shell.openExternal(url);
-    });
+    registerHandlers(handlers);
   }
 
   private async scanFolder(folderPath: string): Promise<FileItem[]> {
