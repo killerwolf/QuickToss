@@ -70,7 +70,7 @@ npm test              # once
 npm run test:watch    # while developing
 ```
 
-Coverage is partial by design — the suite currently covers file-type classification, the formatting helpers, file operations, settings persistence, and the update notifier. Extending it is tracked in [#9](https://github.com/killerwolf/QuickToss/issues/9); the undo stack (`src/App.tsx`) is next.
+Coverage is partial by design — the suite currently covers file-type classification, the formatting helpers, file operations, settings persistence, session state (`src/hooks/useFileSession.ts` — keep/delete/undo), and the update notifier. Extending it is tracked in [#9](https://github.com/killerwolf/QuickToss/issues/9).
 
 Logic worth testing should live outside `electron/main.ts`, which instantiates the app at import time and can't be loaded from a test. `electron/file-types.ts`, `electron/file-operations.ts`, and `electron/settings-store.ts` are the pattern to follow: pure functions (or a factory taking its dependencies as parameters) the main process calls, importable on their own.
 
