@@ -1,6 +1,6 @@
 {
   "name": "quicktoss",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Clean out a cluttered folder the way you'd swipe through a dating app: one file at a time, left to toss, right to keep.",
   "main": "dist/main.js",
   "homepage": "https://github.com/killerwolf/QuickToss",

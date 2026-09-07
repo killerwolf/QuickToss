@@ -10,11 +10,19 @@ Downloads for every release are on the
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-07
+
 ### Changed
 
 - The PDF viewer is no longer part of the initial bundle — it loads the first time
   you actually open a PDF, so the app starts faster for everyone who never previews one.
 - The app icon fills more of its canvas, so it reads better at Dock and Finder sizes.
+
+### Fixed
+
+- A file that fails to move to the Trash is no longer counted as tossed. The failure
+  was swallowed, so the file stayed on disk while the summary claimed it was gone —
+  now the session leaves it in place and tells you what happened.
 
 ## [1.4.0] - 2026-08-20
 
@@ -70,7 +78,8 @@ Downloads for every release are on the
   left to toss, right to keep. Previews for images, PDFs, plain-text formats and
   video; `Cmd+Z` undoes any decision; tossed files go to the system Trash.
 
-[Unreleased]: https://github.com/killerwolf/QuickToss/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/killerwolf/QuickToss/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/killerwolf/QuickToss/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/killerwolf/QuickToss/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/killerwolf/QuickToss/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/killerwolf/QuickToss/compare/v1.1.0...v1.2.0
