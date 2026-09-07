@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>QuickToss — swipe through a cluttered folder and clear it out</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Clean out a cluttered folder the way you'd swipe through a dating app: one file at a time, left to toss, right to keep. A free, open-source macOS app. Everything goes to the Trash, and every action can be undone."
+    />
+    <link rel="canonical" href="https://h4md1.fr/QuickToss/" />
+
+    <link rel="icon" type="image/png" sizes="256x256" href="icon-256.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="theme-color" content="#4f46e5" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="QuickToss" />
+    <meta property="og:title" content="QuickToss — swipe through a cluttered folder and clear it out" />
+    <meta
+      property="og:description"
+      content="Clean out a cluttered folder the way you'd swipe through a dating app: one file at a time, left to toss, right to keep. A free, open-source macOS app."
+    />
+    <meta property="og:url" content="https://h4md1.fr/QuickToss/" />
+    <meta property="og:image" content="https://h4md1.fr/QuickToss/social-preview.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta
+      property="og:image:alt"
+      content="QuickToss: the app showing an image preview with a red toss button and a green keep button."
+    />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="QuickToss — swipe through a cluttered folder and clear it out" />
+    <meta
+      name="twitter:description"
+      content="Clean out a cluttered folder the way you'd swipe through a dating app: one file at a time, left to toss, right to keep. A free, open-source macOS app."
+    />
+    <meta name="twitter:image" content="https://h4md1.fr/QuickToss/social-preview.png" />
+
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --bg-alt: #f5f6fb;
+        --bg-sunk: #eaecf5;
+        --fg: #14161c;
+        --fg-mut: #585f70;
+        --line: #e0e3ee;
+        --accent: #4f46e5;
+        --accent-fg: #ffffff;
+        --toss: #dc2626;
+        --toss-soft: #fdeced;
+        --keep: #16a34a;
+        --keep-soft: #eaf7ee;
+        --warn-soft: #fff7e6;
+        --warn-line: #e0a300;
+        --radius: 14px;
+        --wrap: 960px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e1015;
+          --bg-alt: #151822;
+          --bg-sunk: #1c202c;
+          --fg: #eef0f6;
+          --fg-mut: #a3aaba;
+          --line: #252a37;
+          --accent: #8b83ff;
+          --accent-fg: #12101f;
+          --toss: #f87171;
+          --toss-soft: #2a1618;
+          --keep: #4ade80;
+          --keep-soft: #12241a;
+          --warn-soft: #241d0d;
+          --warn-line: #d9a521;
+        }
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; background: var(--bg); color: var(--fg);
+        font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 22px; }
+      a { color: var(--accent); text-underline-offset: 2px; }
+      a:hover { text-decoration: none; }
+      .skip {
+        position: absolute; left: -9999px; background: var(--accent);
+        color: var(--accent-fg); padding: 10px 16px; z-index: 10;
+      }
+      .skip:focus { left: 0; top: 0; }
+
+      /* hero */
+      .hero {
+        background: var(--bg-alt); border-bottom: 1px solid var(--line);
+        padding: 44px 0 0; text-align: center;
+      }
+      .hero img.app-icon { border-radius: 22px; }
+      h1 {
+        margin: 20px 0 0; font-size: clamp(2.1rem, 5.4vw, 3.2rem);
+        line-height: 1.08; letter-spacing: -0.03em;
+      }
+      .lede {
+        margin: 18px auto 0; font-size: 1.15rem; color: var(--fg-mut);
+        max-width: 54ch;
+      }
+      .lede strong { color: var(--fg); }
+
+      .shot {
+        margin: 36px auto -60px; max-width: 860px;
+        border-radius: var(--radius); border: 1px solid var(--line);
+        box-shadow: 0 22px 50px rgba(20, 22, 28, 0.18);
+        overflow: hidden; background: var(--bg); display: block;
+      }
+      .shot img { display: block; width: 100%; height: auto; }
+      @media (prefers-color-scheme: dark) {
+        .shot { box-shadow: 0 22px 50px rgba(0, 0, 0, 0.5); }
+      }
+
+      /* download */
+      .downloads { padding: 92px 0 0; text-align: center; }
+      .dl-row {
+        display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
+        margin-top: 26px;
+      }
+      .btn {
+        display: inline-flex; flex-direction: column; align-items: center;
+        gap: 2px; text-decoration: none; border-radius: var(--radius);
+        padding: 14px 26px; font-weight: 600; font-size: 1rem;
+        background: var(--accent); color: var(--accent-fg);
+        border: 1px solid transparent; min-width: 220px;
+      }
+      .btn:hover { filter: brightness(1.08); }
+      .btn small {
+        font-weight: 500; font-size: 0.78rem; opacity: 0.85;
+      }
+      .btn.ghost {
+        background: var(--bg); color: var(--fg); border-color: var(--line);
+      }
+      .btn.ghost:hover { border-color: var(--accent); color: var(--accent); filter: none; }
+      .hint { margin-top: 16px; font-size: 0.9rem; color: var(--fg-mut); }
+      .meta { margin-top: 10px; font-size: 0.85rem; color: var(--fg-mut); }
+
+      /* sections */
+      .section { padding: 64px 0 0; }
+      .section h2 {
+        margin: 0; font-size: clamp(1.4rem, 3.2vw, 1.95rem);
+        letter-spacing: -0.02em; line-height: 1.2;
+      }
+      .sub { color: var(--fg-mut); margin: 12px 0 0; max-width: 64ch; }
+
+      /* gotcha */
+      .gotcha {
+        margin-top: 22px; background: var(--warn-soft);
+        border: 1px solid var(--line); border-left: 4px solid var(--warn-line);
+        border-radius: 0 var(--radius) var(--radius) 0; padding: 20px 22px;
+      }
+      .gotcha h3 { margin: 0; font-size: 1.02rem; }
+      .gotcha p { color: var(--fg-mut); margin: 10px 0 0; }
+      .copy {
+        display: flex; align-items: center; gap: 10px; margin-top: 14px;
+        background: var(--bg); border: 1px solid var(--line);
+        border-radius: 10px; padding: 6px 6px 6px 14px; overflow: hidden;
+      }
+      .copy code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.88rem; white-space: nowrap; overflow-x: auto; flex: 1;
+      }
+      .copy-btn {
+        border: 0; cursor: pointer; border-radius: 8px; flex: none;
+        background: var(--accent); color: var(--accent-fg);
+        padding: 8px 14px; font: inherit; font-size: 0.84rem; font-weight: 600;
+      }
+      .copy-btn:hover { filter: brightness(1.08); }
+
+      /* steps */
+      .steps {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+        margin-top: 24px; padding: 0; list-style: none; counter-reset: s;
+      }
+      @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+      .steps li {
+        border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 20px; background: var(--bg-alt);
+      }
+      .steps h3 { margin: 0 0 8px; font-size: 1rem; }
+      .steps p { margin: 0; color: var(--fg-mut); font-size: 0.95rem; }
+      .steps .toss { color: var(--toss); }
+      .steps .keep { color: var(--keep); }
+      .pill {
+        display: inline-block; border-radius: 6px; padding: 1px 7px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.85em; background: var(--bg-sunk); color: var(--fg);
+      }
+
+      .table-scroll { overflow-x: auto; margin-top: 22px; }
+      table {
+        border-collapse: collapse; width: 100%; font-size: 0.95rem;
+        border: 1px solid var(--line); border-radius: var(--radius);
+        overflow: hidden;
+      }
+      th, td {
+        text-align: left; padding: 11px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      tbody tr:last-child td { border-bottom: 0; }
+      th {
+        background: var(--bg-alt); font-size: 0.8rem; letter-spacing: 0.03em;
+        text-transform: uppercase; color: var(--fg-mut);
+      }
+
+      .cards { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); margin-top: 24px; }
+      @media (max-width: 760px) { .cards { grid-template-columns: 1fr; } }
+      .card {
+        border: 1px solid var(--line); border-radius: var(--radius); padding: 20px;
+      }
+      .card h3 { margin: 0 0 8px; font-size: 1rem; }
+      .card p { margin: 0; color: var(--fg-mut); font-size: 0.95rem; }
+
+      .privacy { margin-top: 24px; padding: 0; list-style: none; }
+      .privacy li {
+        padding: 12px 0 12px 30px; border-bottom: 1px solid var(--line);
+        color: var(--fg-mut); position: relative;
+      }
+      .privacy li:last-child { border-bottom: 0; }
+      .privacy li::before {
+        content: "✓"; position: absolute; left: 4px; color: var(--keep); font-weight: 700;
+      }
+      .privacy strong { color: var(--fg); }
+
+      .footer {
+        margin-top: 80px; padding: 36px 0 56px;
+        border-top: 1px solid var(--line); background: var(--bg-alt);
+        text-align: center;
+      }
+      .footer p { color: var(--fg-mut); font-size: 0.92rem; }
+      .footer .fine { font-size: 0.85rem; margin-bottom: 0; }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip" href="#download">Skip to download</a>
+
+    <header class="hero">
+      <div class="wrap">
+        <img class="app-icon" src="icon-256.png" alt="" width="88" height="88" />
+        <h1>Your Downloads folder, <br />cleared out in one sitting.</h1>
+        <p class="lede">
+          Clean out a cluttered folder the way you'd swipe through a dating app:
+          one file at a time, <strong>left to toss, right to keep</strong>.
+        </p>
+        <div class="shot">
+          <img
+            src="screenshot.png"
+            alt="QuickToss on the first of eight files in a folder: a large image preview with the file name, size and date below it, a red toss button and a green keep button."
+            width="1800" height="1158"
+          />
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="download" class="downloads">
+        <div class="wrap">
+          <h2>Download for macOS</h2>
+          <p class="sub" style="margin-left: auto; margin-right: auto">
+            Free and open source. Pick the build that matches your Mac.
+          </p>
+          <div class="dl-row">
+            <a class="btn" id="dl-arm" href="https://github.com/killerwolf/QuickToss/releases/latest">
+              Apple Silicon
+              <small>M1, M2, M3, M4</small>
+            </a>
+            <a class="btn ghost" id="dl-intel" href="https://github.com/killerwolf/QuickToss/releases/latest">
+              Intel
+              <small>older Macs</small>
+            </a>
+          </div>
+          <p class="hint">
+            Not sure which you have? Apple menu → About This Mac. “Apple M…” means Apple Silicon.
+          </p>
+          <p class="meta" id="rel-meta">
+            <a href="https://github.com/killerwolf/QuickToss/releases">All releases</a>
+            ·
+            <a href="https://github.com/killerwolf/QuickToss/blob/main/CHANGELOG.md">Changelog</a>
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="gotcha">
+            <h3>First launch: “QuickToss.app is damaged”</h3>
+            <p>
+              If macOS refuses to open the app, it isn't actually broken.
+              QuickToss isn't signed with a paid Apple Developer certificate yet,
+              and macOS blocks unsigned apps downloaded from the internet. Run
+              this once in Terminal, then open the app normally:
+            </p>
+            <div class="copy" data-copy="xattr -cr /Applications/QuickToss.app">
+              <code>xattr -cr /Applications/QuickToss.app</code>
+              <button type="button" class="copy-btn" aria-label="Copy command">Copy</button>
+            </div>
+            <p>
+              You'll need to repeat this after installing a new version. Removing
+              this friction is tracked in
+              <a href="https://github.com/killerwolf/QuickToss/issues/7">issue #7</a>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <h2>Three keys, and you're done</h2>
+          <ol class="steps">
+            <li>
+              <h3>1. Pick a folder</h3>
+              <p>Start with <span class="pill">Downloads</span>. It's almost always the biggest win.</p>
+            </li>
+            <li>
+              <h3>2. <span class="toss">Toss</span> or <span class="keep">keep</span></h3>
+              <p>
+                Swipe, or press <span class="pill">←</span> to toss and
+                <span class="pill">→</span> to keep. Each file gets a preview, so
+                you decide in a second.
+              </p>
+            </li>
+            <li>
+              <h3>3. Change your mind</h3>
+              <p>
+                <span class="pill">Cmd+Z</span> undoes any decision, and nothing
+                is ever permanently deleted.
+              </p>
+            </li>
+          </ol>
+
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Key</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td><span class="pill">←</span> or <span class="pill">Backspace</span></td><td>Toss — move to Trash</td></tr>
+                <tr><td><span class="pill">→</span> or <span class="pill">Space</span></td><td>Keep</td></tr>
+                <tr><td><span class="pill">I</span></td><td>Show or hide file details</td></tr>
+                <tr><td><span class="pill">Cmd+Z</span></td><td>Undo the last action</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <h2>It previews what you're about to lose</h2>
+          <p class="sub">
+            Deciding is easy when you can see the file. QuickToss renders it inline
+            rather than showing you a filename and hoping.
+          </p>
+          <div class="cards">
+            <div class="card">
+              <h3>Images</h3>
+              <p>JPEG, PNG, GIF, WebP, BMP, TIFF, HEIC</p>
+            </div>
+            <div class="card">
+              <h3>Documents</h3>
+              <p>PDF, and plain-text formats — TXT, MD, RTF, LOG, JSON, XML, CSV, YAML</p>
+            </div>
+            <div class="card">
+              <h3>Video</h3>
+              <p>MP4, MOV, AVI</p>
+            </div>
+          </div>
+          <p class="sub">
+            Word, PowerPoint and spreadsheet files are picked up when scanning but
+            don't have a real preview yet — richer previews are tracked in
+            <a href="https://github.com/killerwolf/QuickToss/issues/12">issue #12</a>.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <h2>Your files stay yours</h2>
+          <ul class="privacy">
+            <li>
+              <strong>Nothing is uploaded.</strong> QuickToss makes no network
+              requests with your files — everything happens locally. It only talks
+              to GitHub to check whether a newer version exists.
+            </li>
+            <li>
+              <strong>Nothing is permanently deleted.</strong> Tossed files go to
+              the system Trash and sit there until you empty it.
+            </li>
+            <li>
+              <strong>Nothing is read without asking.</strong> It only reads the
+              folder you explicitly choose.
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <p>
+          <a href="https://github.com/killerwolf/QuickToss">GitHub</a>
+          ·
+          <a href="https://github.com/killerwolf/QuickToss/releases">Releases</a>
+          ·
+          <a href="https://github.com/killerwolf/QuickToss/issues">Report a bug</a>
+          ·
+          <a href="https://github.com/killerwolf/QuickToss/blob/main/LICENSE">MIT</a>
+        </p>
+        <p class="fine">Built by Hamdi Laadhari. macOS only, for now.</p>
+      </div>
+    </footer>
+
+    <script>
+      // Copy-to-clipboard for the xattr command.
+      document.querySelectorAll(".copy").forEach((box) => {
+        const btn = box.querySelector(".copy-btn");
+        btn.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(box.dataset.copy);
+            const was = btn.textContent;
+            btn.textContent = "Copied";
+            setTimeout(() => { btn.textContent = was; }, 1600);
+          } catch {
+            // Clipboard denied — the command is visible right there.
+          }
+        });
+      });
+
+      // Point the download buttons at the actual DMGs of the newest release.
+      // Asset names carry the version, so there is no stable "latest" URL for
+      // them; the buttons fall back to the releases page until this resolves.
+      (async () => {
+        try {
+          const res = await fetch(
+            "https://api.github.com/repos/killerwolf/QuickToss/releases/latest",
+            { headers: { Accept: "application/vnd.github+json" } }
+          );
+          if (!res.ok) return;
+          const rel = await res.json();
+          const dmg = (arch) =>
+            (rel.assets || []).find(
+              (a) => a.name.endsWith(".dmg") && a.name.includes(arch)
+            );
+          const arm = dmg("arm64");
+          const intel = dmg("x64");
+          if (arm) document.getElementById("dl-arm").href = arm.browser_download_url;
+          if (intel) document.getElementById("dl-intel").href = intel.browser_download_url;
+          if (rel.tag_name) {
+            const meta = document.getElementById("rel-meta");
+            const date = rel.published_at
+              ? new Date(rel.published_at).toLocaleDateString(undefined, {
+                  year: "numeric", month: "long", day: "numeric",
+                })
+              : null;
+            meta.insertAdjacentHTML(
+              "afterbegin",
+              `${rel.tag_name}${date ? " — " + date : ""} · `
+            );
+          }
+        } catch {
+          // Offline, rate-limited, or blocked: the static links still work.
+        }
+      })();
+    </script>
+  </body>
+</html>
