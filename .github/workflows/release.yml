@@ -50,6 +50,11 @@ jobs:
       - name: Test build (compile + pack only)
         run: npm run pack
 
+      # Boots the packaged output in Electron. Everything above passes on an
+      # app that opens to a blank window, because nothing above launches it.
+      - name: Smoke test (boot the built app)
+        run: npm run test:smoke
+
   build:
     name: Build & Publish macOS (Intel + Apple Silicon)
     runs-on: macos-latest
