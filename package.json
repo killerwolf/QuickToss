@@ -26,6 +26,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:smoke": "electron scripts/smoke-test.js",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder --publish=never",
     "build:mac": "npm run build && electron-builder --mac",
