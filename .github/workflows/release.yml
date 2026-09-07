@@ -2,6 +2,10 @@ name: Build, Lint, and Release
 
 on:
   push:
+    # Tags cut a release; main runs the test job only, so the CI badge in the
+    # README reflects the state of the default branch rather than "no status".
+    branches:
+      - main
     tags:
       - 'v*'
   pull_request:
