@@ -1,9 +1,19 @@
 {
   "name": "quicktoss",
-  "version": "1.0.0",
-  "description": "A Tinder-like file organization tool for efficient file cleanup",
+  "version": "1.4.0",
+  "description": "Clean out a cluttered folder the way you'd swipe through a dating app: one file at a time, left to toss, right to keep.",
   "main": "dist/main.js",
-  "homepage": "./",
+  "homepage": "https://github.com/killerwolf/QuickToss",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/killerwolf/QuickToss.git"
+  },
+  "bugs": {
+    "url": "https://github.com/killerwolf/QuickToss/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite --port 3000",
@@ -35,7 +45,7 @@
     "electron",
     "productivity"
   ],
-  "author": "QuickToss Team",
+  "author": "Hamdi LAADHARI",
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
