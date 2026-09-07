@@ -15,8 +15,13 @@ async function main() {
   await sharp(svgPath, { density: 384 }).resize(1024, 1024).png().toFile(masterPngPath);
 
   const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "quicktoss-icons-"));
+  // electron-icon-builder is deliberately not a devDependency: it drags in a
+  // deprecated phantomjs-prebuilt, whose postinstall downloads a 17 MB binary
+  // on every clean install and has already failed CI on a transient 504.
+  // Fetching it here means only an icon rebuild pays that cost. --yes because
+  // npx otherwise prompts before installing a package it doesn't have.
   execSync(
-    `npx electron-icon-builder --input="${masterPngPath}" --output="${outputDir}" --flatten`,
+    `npx --yes electron-icon-builder --input="${masterPngPath}" --output="${outputDir}" --flatten`,
     {
       stdio: "inherit",
     }
