@@ -2,11 +2,22 @@
 
 Clean out a cluttered folder the way you'd swipe through a dating app: one file at a time, left to toss, right to keep.
 
+<p align="center">
+  <a href="https://github.com/killerwolf/QuickToss/releases/latest"><img alt="latest release" src="https://img.shields.io/github/v/release/killerwolf/QuickToss"></a>
+  <a href="https://github.com/killerwolf/QuickToss/releases"><img alt="total downloads" src="https://img.shields.io/github/downloads/killerwolf/QuickToss/total"></a>
+  <a href="https://github.com/killerwolf/QuickToss/actions/workflows/release.yml"><img alt="build status" src="https://github.com/killerwolf/QuickToss/actions/workflows/release.yml/badge.svg"></a>
+  <a href="https://github.com/killerwolf/QuickToss/blob/main/LICENSE"><img alt="licence: MIT" src="https://img.shields.io/github/license/killerwolf/QuickToss"></a>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/killerwolf/QuickToss/main/.github/assets/screenshot.png" width="820" alt="QuickToss on the first of eight files in a folder: an image preview with its name, size and date, a red toss button and a green keep button.">
+</p>
+
 Point QuickToss at a folder — `Downloads` is the usual suspect — and it shows you each file with a preview so you can decide in a second. Deleted files go to the system Trash, and every action can be undone, so there's nothing to be nervous about.
 
 ## Download
 
-Grab the latest version from the [releases page](https://github.com/killerwolf/QuickToss/releases/latest).
+Grab the latest version from the [releases page](https://github.com/killerwolf/QuickToss/releases/latest). What changed in each one is in [CHANGELOG.md](CHANGELOG.md).
 
 QuickToss currently ships for **macOS** only:
 
