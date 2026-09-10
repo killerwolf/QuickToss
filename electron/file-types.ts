@@ -25,6 +25,8 @@ export const DOCUMENT_EXTENSIONS = [
   ".yml",
   ".doc",
   ".docx",
+  ".pptx",
+  ".xlsx",
 ] as const;
 
 export const VIDEO_EXTENSIONS = [".mp4", ".mov", ".avi"] as const;

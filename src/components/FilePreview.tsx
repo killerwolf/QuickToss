@@ -7,13 +7,17 @@ import type { PreviewProps } from "../types";
 // keeps it out of the initial download for the majority of files, which aren't
 // PDFs.
 const PdfPreview = lazy(() => import("./PdfPreview"));
+const DocxPreview = lazy(() => import("./DocxPreview"));
+const SpreadsheetPreview = lazy(() => import("./SpreadsheetPreview"));
+const PptxPreview = lazy(() => import("./PptxPreview"));
+const HeicPreview = lazy(() => import("./HeicPreview"));
 
 const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
   const [previewSrc, setPreviewSrc] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [textContent, setTextContent] = useState<string>("");
-  const [pdfBuffer, setPdfBuffer] = useState<ArrayBuffer | null>(null);
+  const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null);
 
   const loadTextFile = useCallback(async () => {
     try {
@@ -28,15 +32,13 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
     }
   }, [file.path]);
 
-  const loadPdfFile = useCallback(async () => {
+  const loadBinaryFile = useCallback(async () => {
     try {
-      console.log("Loading PDF file:", file.path);
       const buffer = await window.electronAPI.readFileAsBuffer(file.path);
-      console.log("PDF buffer loaded, size:", buffer.byteLength);
-      setPdfBuffer(buffer);
+      setFileBuffer(buffer);
       setLoading(false);
     } catch (err) {
-      console.error("Error loading PDF file:", err);
+      console.error("Error loading binary preview file:", err);
       setError(true);
       setLoading(false);
     }
@@ -54,24 +56,26 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
     setLoading(true);
     setError(false);
     setTextContent("");
-    setPdfBuffer(null);
+    setFileBuffer(null);
 
     // Handle different file types
     if (file.type === "image") {
       console.log("Loading image file:", file.path);
       // For images, we can directly use the file path as src
-      setPreviewSrc(`file://${file.path}`);
-      setLoading(false);
+      if (file.extension === ".heic") {
+        loadBinaryFile();
+      } else {
+        setPreviewSrc(`file://${file.path}`);
+        setLoading(false);
+      }
     } else if (file.type === "document") {
-      const textExtensions = [".txt", ".md", ".log", ".json", ".xml", ".csv", ".yaml", ".yml"];
+      const textExtensions = [".txt", ".md", ".log", ".json", ".xml", ".yaml", ".yml"];
       if (textExtensions.includes(file.extension)) {
         console.log("Loading text file:", file.path);
         // For text files, read and display content
         loadTextFile();
-      } else if (file.extension === ".pdf") {
-        console.log("Loading PDF file:", file.path);
-        // For PDF files, load as buffer
-        loadPdfFile();
+      } else if ([".pdf", ".docx", ".pptx", ".xlsx", ".csv"].includes(file.extension)) {
+        loadBinaryFile();
       } else {
         console.log("Unsupported document type:", file.extension);
         // For other document types, show file icon
@@ -89,7 +93,7 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
       setPreviewSrc("");
       setLoading(false);
     }
-  }, [file, loadTextFile, loadPdfFile]);
+  }, [file, loadTextFile, loadBinaryFile]);
 
   const handleImageLoad = () => {
     setLoading(false);
@@ -160,7 +164,7 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
     }
 
     // Text file preview
-    const textExtensions = [".txt", ".md", ".log", ".json", ".xml", ".csv", ".yaml", ".yml"];
+    const textExtensions = [".txt", ".md", ".log", ".json", ".xml", ".yaml", ".yml"];
     if (file.type === "document" && textExtensions.includes(file.extension) && textContent) {
       // Format JSON content for better readability
       let displayContent = textContent;
@@ -188,12 +192,12 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
     // PDF preview
     if (file.type === "document" && file.extension === ".pdf") {
       console.log(
-        "PDF preview section - pdfBuffer exists:",
-        !!pdfBuffer,
-        "pdfBuffer size:",
-        pdfBuffer?.byteLength
+        "PDF preview section - fileBuffer exists:",
+        !!fileBuffer,
+        "fileBuffer size:",
+        fileBuffer?.byteLength
       );
-      if (pdfBuffer) {
+      if (fileBuffer) {
         console.log("Rendering PDF with buffer");
         return (
           <Suspense
@@ -202,7 +206,7 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
             }
           >
             <PdfPreview
-              buffer={pdfBuffer}
+              buffer={fileBuffer}
               onLoadSuccess={onPdfLoadSuccess}
               onLoadError={onPdfLoadError}
             />
@@ -212,6 +216,50 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
         console.log("PDF buffer not loaded yet, showing loading state");
         return <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>;
       }
+
+    }
+
+    if (file.type === "document" && fileBuffer) {
+      const buffer = fileBuffer;
+      const previewError = () => {
+        setLoading(false);
+        setError(true);
+      };
+      const fallback = (
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      );
+      const preview = (() => {
+        switch (file.extension) {
+          case ".docx":
+            return <DocxPreview buffer={buffer} onError={previewError} />;
+          case ".pptx":
+            return <PptxPreview buffer={buffer} onError={previewError} />;
+          case ".xlsx":
+            return <SpreadsheetPreview buffer={buffer} isCsv={false} onError={previewError} />;
+          case ".csv":
+            return <SpreadsheetPreview buffer={buffer} isCsv onError={previewError} />;
+          default:
+            return fallback;
+        }
+      })();
+      return <Suspense fallback={fallback}>{preview}</Suspense>;
+    }
+
+    if (file.type === "image" && file.extension === ".heic" && fileBuffer) {
+      const buffer = fileBuffer;
+      const previewError = () => {
+        setLoading(false);
+        setError(true);
+      };
+      return (
+        <Suspense
+          fallback={
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          }
+        >
+          <HeicPreview buffer={buffer} name={file.name} onError={previewError} />
+        </Suspense>
+      );
     }
 
     // Video preview
