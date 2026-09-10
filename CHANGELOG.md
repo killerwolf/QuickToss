@@ -41,7 +41,8 @@ records the reasoning.
 
 - **Video no longer plays.** Video files show their poster frame, and `O` opens them in
   QuickTime. GPUI has no video element, and the only third-party option requires
-  GStreamer installed system-wide. This is a real loss.
+  GStreamer installed system-wide. This is a real loss, and it's tracked in
+  [#37](https://github.com/killerwolf/QuickToss/issues/37).
 - The **Video Autoplay** setting, which no longer has anything to control. Your other
   two settings carry over untouched.
 
