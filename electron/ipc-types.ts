@@ -40,6 +40,7 @@ export interface ElectronAPI {
   getFileStats: (filePath: string) => Promise<FileStats | null>;
   fileExists: (filePath: string) => Promise<boolean>;
   readFileAsBuffer: (filePath: string) => Promise<ArrayBuffer>;
+  getQuickLookThumbnail: (filePath: string) => Promise<ArrayBuffer | null>;
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: AppSettings) => Promise<void>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
@@ -56,6 +57,7 @@ export const CHANNELS = {
   getFileStats: "get-file-stats",
   fileExists: "file-exists",
   readFileAsBuffer: "read-file-as-buffer",
+  getQuickLookThumbnail: "get-quick-look-thumbnail",
   getSettings: "get-settings",
   saveSettings: "save-settings",
   onUpdateStatus: "update-status",

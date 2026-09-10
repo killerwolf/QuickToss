@@ -2,7 +2,13 @@ import { mkdir, mkdtemp, rm, utimes, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { fileExists, getFileStats, readFileAsBuffer, scanFolder } from "./file-operations";
+import {
+  fileExists,
+  getFileStats,
+  getQuickLookThumbnail,
+  readFileAsBuffer,
+  scanFolder,
+} from "./file-operations";
 
 let dir: string;
 
@@ -89,6 +95,13 @@ describe("readFileAsBuffer", () => {
     const buffer = await readFileAsBuffer(path);
 
     expect(Buffer.from(buffer).toString("utf8")).toBe("hello");
+  });
+
+  describe("getQuickLookThumbnail", () => {
+    it("returns null when Quick Look is unavailable", async () => {
+      if (process.platform === "darwin") return;
+      expect(await getQuickLookThumbnail(join(dir, "file.pptx"))).toBeNull();
+    });
   });
 
   it("rejects for a file that does not exist", async () => {

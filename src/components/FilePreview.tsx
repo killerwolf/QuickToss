@@ -18,6 +18,10 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
   const [error, setError] = useState(false);
   const [textContent, setTextContent] = useState<string>("");
   const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null);
+  const previewError = useCallback(() => {
+    setLoading(false);
+    setError(true);
+  }, []);
 
   const loadTextFile = useCallback(async () => {
     try {
@@ -220,10 +224,6 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
 
     if (file.type === "document" && fileBuffer) {
       const buffer = fileBuffer;
-      const previewError = () => {
-        setLoading(false);
-        setError(true);
-      };
       const fallback = (
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
       );
@@ -232,7 +232,7 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
           case ".docx":
             return <DocxPreview buffer={buffer} onError={previewError} />;
           case ".pptx":
-            return <PptxPreview buffer={buffer} onError={previewError} />;
+            return <PptxPreview buffer={buffer} path={file.path} onError={previewError} />;
           case ".xlsx":
             return <SpreadsheetPreview buffer={buffer} isCsv={false} onError={previewError} />;
           case ".csv":
@@ -246,10 +246,6 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
 
     if (file.type === "image" && file.extension === ".heic" && fileBuffer) {
       const buffer = fileBuffer;
-      const previewError = () => {
-        setLoading(false);
-        setError(true);
-      };
       return (
         <Suspense
           fallback={

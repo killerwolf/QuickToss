@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getFileStats: (filePath: string) => ipcRenderer.invoke(CHANNELS.getFileStats, filePath),
   fileExists: (filePath: string) => ipcRenderer.invoke(CHANNELS.fileExists, filePath),
   readFileAsBuffer: (filePath: string) => ipcRenderer.invoke(CHANNELS.readFileAsBuffer, filePath),
+  getQuickLookThumbnail: (filePath: string) =>
+    ipcRenderer.invoke(CHANNELS.getQuickLookThumbnail, filePath),
   getSettings: () => ipcRenderer.invoke(CHANNELS.getSettings),
   saveSettings: (settings: AppSettings) => ipcRenderer.invoke(CHANNELS.saveSettings, settings),
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => {
