@@ -3,6 +3,7 @@ import { join } from "path";
 import {
   fileExists,
   getFileStats,
+  getQuickLookThumbnail,
   moveToTrash,
   readFileAsBuffer,
   scanFolder,
@@ -113,6 +114,7 @@ class QuickTossApp {
       getFileStats,
       fileExists,
       readFileAsBuffer,
+      getQuickLookThumbnail,
       getSettings: this.settingsStore.getSettings,
       saveSettings: this.settingsStore.saveSettings,
       openReleasePage: this.updater.openReleasePage,

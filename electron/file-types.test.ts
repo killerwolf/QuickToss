@@ -17,6 +17,8 @@ describe("getFileType", () => {
   it("classifies documents", () => {
     expect(getFileType(".pdf")).toBe("document");
     expect(getFileType(".docx")).toBe("document");
+    expect(getFileType(".pptx")).toBe("document");
+    expect(getFileType(".xlsx")).toBe("document");
   });
 
   it("classifies video", () => {
@@ -40,6 +42,8 @@ describe("getFileType", () => {
 describe("isSupportedExtension", () => {
   it("accepts a supported extension", () => {
     expect(isSupportedExtension(".jpg")).toBe(true);
+    expect(isSupportedExtension(".pptx")).toBe(true);
+    expect(isSupportedExtension(".xlsx")).toBe(true);
   });
 
   it("rejects an unsupported one", () => {

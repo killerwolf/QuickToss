@@ -1,9 +1,14 @@
+import { execFile } from "child_process";
 import { shell } from "electron";
 import { existsSync, readFileSync } from "fs";
-import { readdir, stat } from "fs/promises";
-import { join } from "path";
+import { mkdtemp, readdir, readFile, rm, stat } from "fs/promises";
+import { tmpdir } from "os";
+import { basename, join } from "path";
+import { promisify } from "util";
 import { getFileType, isSupportedExtension } from "./file-types";
 import type { FileItem, FileStats } from "./ipc-types";
+
+const execFileAsync = promisify(execFile);
 
 // Error-handling policy: operations with no safe fallback value (scanFolder,
 // moveToTrash, readFileAsBuffer) log and rethrow, via logAndRethrow below, so
@@ -90,4 +95,29 @@ export async function readFileAsBuffer(filePath: string): Promise<ArrayBuffer> {
     const buffer = readFileSync(filePath);
     return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
   });
+}
+
+// Ask macOS Quick Look for a rendered thumbnail. A null result is intentional:
+// unsupported platforms and files use the renderer's format-specific fallback.
+export async function getQuickLookThumbnail(filePath: string): Promise<ArrayBuffer | null> {
+  if (process.platform !== "darwin") return null;
+
+  const outputDirectory = await mkdtemp(join(tmpdir(), "quicktoss-quicklook-"));
+  try {
+    await execFileAsync("/usr/bin/qlmanage", ["-t", "-s", "1600", "-o", outputDirectory, filePath]);
+    const outputFiles = await readdir(outputDirectory);
+    const thumbnailName = outputFiles.find((name) => name.toLowerCase().endsWith(".png"));
+    if (!thumbnailName) {
+      console.warn(`Quick Look did not generate a thumbnail for ${basename(filePath)}`);
+      return null;
+    }
+
+    const buffer = await readFile(join(outputDirectory, thumbnailName));
+    return new Uint8Array(buffer).slice().buffer;
+  } catch (error) {
+    console.warn(`Quick Look preview unavailable for ${basename(filePath)}:`, error);
+    return null;
+  } finally {
+    await rm(outputDirectory, { recursive: true, force: true });
+  }
 }
