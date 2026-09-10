@@ -69,7 +69,7 @@ QuickToss checks for new versions on launch and shows a notice when one is avail
 
 Anything macOS can draw, QuickToss shows, because it asks macOS: previews come from the same Quick Look renderer behind Finder's space-bar preview. A slide deck looks like the deck, not like a list of its text.
 
-Video is the exception — you get the poster frame rather than playback. Improving that is tracked in [#12](https://github.com/killerwolf/QuickToss/issues/12).
+Video is the exception — you get the poster frame rather than playback, and `O` opens the file in QuickTime.
 
 ## Your files stay yours
 

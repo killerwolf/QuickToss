@@ -115,7 +115,9 @@ GPUI publishes as `gpui-pre-*` snapshots of Zed's main branch and makes breaking
 
 ## Known constraint: no video playback
 
-GPUI has no video element, and the one third-party player depends on GStreamer being installed system-wide. Video files show the poster frame Quick Look produces, and `O` opens them in QuickTime. Improving on this — a scrubbable filmstrip from `AVAssetImageGenerator` is the obvious next step — is tracked in [#12](https://github.com/killerwolf/QuickToss/issues/12).
+GPUI has no video element, and the one third-party player depends on GStreamer being installed system-wide. Video files show the poster frame Quick Look produces, and `O` opens them in QuickTime.
+
+The obvious next step is a scrubbable filmstrip: `AVAssetImageGenerator` can pull frames at intervals, and dragging across them reads a recording faster than playing it does. That has no issue open yet.
 
 ## Known constraint: unsigned builds
 
