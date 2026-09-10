@@ -19,14 +19,7 @@ Point QuickToss at a folder — `Downloads` is the usual suspect — and it show
 
 Grab the latest version from the [releases page](https://github.com/killerwolf/QuickToss/releases/latest). What changed in each one is in [CHANGELOG.md](CHANGELOG.md).
 
-QuickToss currently ships for **macOS** only:
-
-| Your Mac | Download |
-| --- | --- |
-| Apple Silicon (M1/M2/M3/M4) | `QuickToss-<version>-arm64.dmg` |
-| Intel | `QuickToss-<version>-x64.dmg` |
-
-Not sure which you have?  → About This Mac. "Apple M…" means Apple Silicon.
+QuickToss ships for **macOS 12 and later** as a single universal download — `QuickToss-<version>-universal.dmg` — that runs natively on both Apple Silicon and Intel. It's about 6 MB.
 
 ### First launch: "QuickToss.app is damaged"
 
@@ -42,7 +35,7 @@ Then open the app normally. You'll need to repeat this after installing a new ve
 
 ### Updates
 
-QuickToss checks for new versions on launch and shows a notification when one is available. Installing is manual for now — the notification links to the release page. (Automatic in-place updates also need the code signing from [#7](https://github.com/killerwolf/QuickToss/issues/7).)
+QuickToss checks for new versions on launch and shows a notice when one is available. Installing is manual for now — the notice links to the release page. (Automatic in-place updates also need the code signing from [#7](https://github.com/killerwolf/QuickToss/issues/7).)
 
 ## Using it
 
@@ -59,6 +52,7 @@ QuickToss checks for new versions on launch and shows a notification when one is
 | `←` or `Backspace` | Toss (move to Trash) |
 | `→` or `Space` | Keep |
 | `I` | Show/hide file details |
+| `O` | Open the file in whatever app owns it |
 | `Cmd+Z` | Undo the last action |
 
 ### Tips
@@ -70,16 +64,22 @@ QuickToss checks for new versions on launch and shows a notification when one is
 ## What it can preview
 
 - **Images** — JPEG, PNG, GIF, WebP, BMP, TIFF, HEIC
-- **Documents** — PDF, and plain-text formats (TXT, MD, RTF, LOG, JSON, XML, CSV, YAML)
-- **Video** — MP4, MOV, AVI
+- **Documents** — PDF, Word, PowerPoint, Excel, RTF, and plain-text formats (TXT, MD, LOG, JSON, XML, CSV, YAML)
+- **Video** — MP4, MOV, AVI (poster frame; press `O` to play it)
 
-Word, PowerPoint and spreadsheet files are picked up when scanning but don't have a real preview yet — richer previews are tracked in [#12](https://github.com/killerwolf/QuickToss/issues/12).
+Anything macOS can draw, QuickToss shows, because it asks macOS: previews come from the same Quick Look renderer behind Finder's space-bar preview. A slide deck looks like the deck, not like a list of its text.
+
+Video is the exception — you get the poster frame rather than playback. Improving that is tracked in [#12](https://github.com/killerwolf/QuickToss/issues/12).
 
 ## Your files stay yours
 
 - QuickToss makes no network requests with your files — everything happens locally. It only talks to GitHub to check whether a newer version exists.
 - Tossed files go to the system Trash, never a permanent delete.
 - It only reads the folder you explicitly choose.
+
+## Built with
+
+QuickToss is a native Rust app built on [GPUI](https://gpui.rs), the GPU-accelerated UI framework behind the Zed editor, with [GPUI Kit](https://gpui-kit.com) for its components. It moved off Electron in 2.0 — [ADR 0002](docs/adr/0002-gpui-instead-of-electron.md) explains what that bought and what it cost.
 
 ## Contributing
 

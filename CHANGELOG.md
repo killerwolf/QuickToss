@@ -10,6 +10,42 @@ Downloads for every release are on the
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-10
+
+QuickToss is now a native Rust app built on [GPUI](https://gpui.rs) rather than an
+Electron app. Everything you do with it works the way it did — the same screens, the
+same keys, the same Trash-not-delete safety — but the app around that got a great deal
+smaller and the previews got better. [ADR 0002](docs/adr/0002-gpui-instead-of-electron.md)
+records the reasoning.
+
+### Changed
+
+- **The download is about 6 MB instead of 110 MB**, and one universal file instead of a
+  separate one per Mac. Installed, the app is 13 MB where it used to be 341 MB. There's
+  no longer a copy of Chromium in there.
+- **Previews come from macOS itself now.** Word, PowerPoint, Excel and RTF files get a
+  real preview for the first time, PDFs and HEIC photos render the way they do in
+  Finder, and it's the same renderer behind the space-bar preview you already know.
+  Five JavaScript libraries that each approximated one of those formats are gone.
+- The window follows your Mac's light or dark appearance instead of always being light.
+- Which folder you're working through is now shown while you work through it.
+- Messages that used to stop the app with an alert box — an empty folder, a file that
+  wouldn't move — are now a line along the bottom you can read and ignore.
+
+### Added
+
+- **`O` opens the current file** in whatever app owns it. Anything QuickToss can't draw
+  is now one keystroke from the app that can.
+
+### Removed
+
+- **Video no longer plays.** Video files show their poster frame, and `O` opens them in
+  QuickTime. GPUI has no video element, and the only third-party option requires
+  GStreamer installed system-wide. This is a real loss and it's tracked in
+  [#12](https://github.com/killerwolf/QuickToss/issues/12).
+- The **Video Autoplay** setting, which no longer has anything to control. Your other
+  two settings carry over untouched.
+
 ## [1.5.0] - 2026-09-07
 
 ### Changed

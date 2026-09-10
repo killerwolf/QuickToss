@@ -14,49 +14,49 @@ on:
   workflow_dispatch:
 
 env:
-  # Pinned to the current Node.js LTS line.
-  NODE_VERSION: '24'
+  CARGO_TERM_COLOR: always
 
 jobs:
   test:
-    name: Lint and Test Build
+    name: Lint and Test
     runs-on: macos-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          components: rustfmt, clippy
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run linter
-        run: npm run lint
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app
 
       - name: Check formatting
-        run: npm run check
+        run: cargo fmt --check
+        working-directory: app
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Run linter
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: app
 
+      # Covers the ported session, settings, scanning and update logic, plus
+      # the Quick Look bridge against real files — the runner has macOS, so
+      # QLThumbnailGenerator is genuinely exercised rather than mocked.
       - name: Run tests
-        run: npm test
+        run: cargo test
+        working-directory: app
 
-      - name: Test build (compile + pack only)
-        run: npm run pack
-
-      # Boots the packaged output in Electron. Everything above passes on an
-      # app that opens to a blank window, because nothing above launches it.
-      - name: Smoke test (boot the built app)
-        run: npm run test:smoke
+      # Everything above passes on an app that opens to a blank window,
+      # because nothing above builds the bundle it actually ships.
+      - name: Build the app bundle
+        run: scripts/bundle.sh
 
   build:
-    name: Build & Publish macOS (Intel + Apple Silicon)
+    name: Build & Publish macOS (universal)
     runs-on: macos-latest
     needs: test
     # Runs on a version tag push (v*) or when triggered manually from any branch.
@@ -72,60 +72,64 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          # One binary covers both Macs now that it isn't carrying a browser
+          # engine, so there is a single download rather than one per arch.
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app
 
       - name: Set app version
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          echo "Setting app version to ${{ github.ref_name }}"
-          npm version ${{ github.ref_name }} --no-git-tag-version --allow-same-version
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Setting app version to $VERSION"
+          # Only the [package] version, which is the first `version = ` line.
+          sed -i '' "0,/^version = \".*\"/s//version = \"$VERSION\"/" app/Cargo.toml
+          grep -m1 '^version' app/Cargo.toml
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build the app
-        run: npm run build
+      - name: Build the DMG
+        run: scripts/bundle.sh --dmg
 
       - name: Determine release channel
         id: channel
         run: |
           # A semver prerelease tag (e.g. v1.3.0-rc.1) publishes as a GitHub
-          # prerelease, which electron-updater ignores by default — so it
-          # won't reach existing installs. A plain tag (v1.3.0) publishes as
-          # a normal release and becomes the update target for everyone.
-          if [[ "${{ github.ref_name }}" == *-* ]]; then
-            echo "release_type=prerelease" >> "$GITHUB_OUTPUT"
+          # prerelease, so the in-app update check — which reads the "latest"
+          # release — won't offer it to everyone on a stable build.
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT"
           else
-            echo "release_type=release" >> "$GITHUB_OUTPUT"
+            echo "prerelease=" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Package & publish (x64 + arm64)
-        run: npx electron-builder --mac --x64 --arm64 --publish always -c.publish.releaseType=${{ steps.channel.outputs.release_type }}
-
-      # electron-builder publishes the release with an empty body, so every
-      # release before v1.5.0 shipped with no notes. Fill it from CHANGELOG.md.
-      - name: Set release notes from CHANGELOG
+      - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          # A prerelease tag (v1.3.0-rc.1) has no CHANGELOG section of its own,
-          # so a miss here leaves the notes alone rather than failing the release.
-          if node scripts/changelog-section.js "${GITHUB_REF_NAME}" > "$RUNNER_TEMP/notes.md"; then
-            gh release edit "${GITHUB_REF_NAME}" --notes-file "$RUNNER_TEMP/notes.md"
+          # A prerelease tag has no CHANGELOG section of its own, so a miss
+          # here publishes without notes rather than failing the release.
+          NOTES=()
+          if scripts/changelog-section.sh "${GITHUB_REF_NAME}" > "$RUNNER_TEMP/notes.md"; then
+            NOTES=(--notes-file "$RUNNER_TEMP/notes.md")
           else
-            echo "No CHANGELOG section for ${GITHUB_REF_NAME}; leaving the release notes as they are."
+            echo "No CHANGELOG section for ${GITHUB_REF_NAME}; publishing without notes."
+            NOTES=(--notes "")
           fi
+
+          gh release create "${GITHUB_REF_NAME}" dist/*.dmg \
+            --title "${GITHUB_REF_NAME}" \
+            ${{ steps.channel.outputs.prerelease }} \
+            "${NOTES[@]}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: quicktoss-mac
-          path: |
-            release/**/*.dmg
-            release/**/*.zip
-            release/**/*.yml
+          path: dist/*.dmg
           retention-days: 30
           if-no-files-found: ignore

@@ -267,21 +267,14 @@
         <div class="wrap">
           <h2>Download for macOS</h2>
           <p class="sub" style="margin-left: auto; margin-right: auto">
-            Free and open source. Pick the build that matches your Mac.
+            Free and open source. One download for every Mac.
           </p>
           <div class="dl-row">
-            <a class="btn" id="dl-arm" href="https://github.com/killerwolf/QuickToss/releases/latest">
-              Apple Silicon
-              <small>M1, M2, M3, M4</small>
-            </a>
-            <a class="btn ghost" id="dl-intel" href="https://github.com/killerwolf/QuickToss/releases/latest">
-              Intel
-              <small>older Macs</small>
+            <a class="btn" id="dl-universal" href="https://github.com/killerwolf/QuickToss/releases/latest">
+              Download for macOS
+              <small id="dl-detail">Apple Silicon &amp; Intel · macOS 12+</small>
             </a>
           </div>
-          <p class="hint">
-            Not sure which you have? Apple menu → About This Mac. “Apple M…” means Apple Silicon.
-          </p>
           <p class="meta" id="rel-meta">
             <a href="https://github.com/killerwolf/QuickToss/releases">All releases</a>
             ·
@@ -366,17 +359,18 @@
             </div>
             <div class="card">
               <h3>Documents</h3>
-              <p>PDF, and plain-text formats — TXT, MD, RTF, LOG, JSON, XML, CSV, YAML</p>
+              <p>PDF, Word, PowerPoint, Excel, RTF — plus TXT, MD, LOG, JSON, XML, CSV, YAML</p>
             </div>
             <div class="card">
               <h3>Video</h3>
-              <p>MP4, MOV, AVI</p>
+              <p>MP4, MOV, AVI — poster frame</p>
             </div>
           </div>
           <p class="sub">
-            Word, PowerPoint and spreadsheet files are picked up when scanning but
-            don't have a real preview yet — richer previews are tracked in
-            <a href="https://github.com/killerwolf/QuickToss/issues/12">issue #12</a>.
+            Previews come from the same Quick Look renderer behind Finder's space-bar
+            preview, so a slide deck looks like the deck. Video is the exception: you
+            get the poster frame, and <span class="pill">O</span> opens it in QuickTime
+            — <a href="https://github.com/killerwolf/QuickToss/issues/12">issue #12</a>.
           </p>
         </div>
       </section>
@@ -445,14 +439,18 @@
           );
           if (!res.ok) return;
           const rel = await res.json();
-          const dmg = (arch) =>
-            (rel.assets || []).find(
-              (a) => a.name.endsWith(".dmg") && a.name.includes(arch)
-            );
-          const arm = dmg("arm64");
-          const intel = dmg("x64");
-          if (arm) document.getElementById("dl-arm").href = arm.browser_download_url;
-          if (intel) document.getElementById("dl-intel").href = intel.browser_download_url;
+          // Releases from 2.0 on carry a single universal DMG. Falling back to
+          // any .dmg keeps the button working against an older release too.
+          const dmgs = (rel.assets || []).filter((a) => a.name.endsWith(".dmg"));
+          const dmg = dmgs.find((a) => a.name.includes("universal")) || dmgs[0];
+          if (dmg) {
+            document.getElementById("dl-universal").href = dmg.browser_download_url;
+            const mb = Math.round((dmg.size / 1048576) * 10) / 10;
+            if (mb > 0) {
+              document.getElementById("dl-detail").textContent =
+                `Apple Silicon & Intel · macOS 12+ · ${mb} MB`;
+            }
+          }
           if (rel.tag_name) {
             const meta = document.getElementById("rel-meta");
             const date = rel.published_at
