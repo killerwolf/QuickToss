@@ -216,7 +216,6 @@ const FilePreview: React.FC<PreviewProps> = ({ file, settings }) => {
         console.log("PDF buffer not loaded yet, showing loading state");
         return <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>;
       }
-
     }
 
     if (file.type === "document" && fileBuffer) {

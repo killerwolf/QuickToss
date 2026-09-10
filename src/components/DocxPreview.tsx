@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import mammoth from "mammoth";
+import { useEffect, useState } from "react";
 
 interface DocxPreviewProps {
   buffer: ArrayBuffer;
