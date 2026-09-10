@@ -1,0 +1,49 @@
+[package]
+name = "quicktoss"
+version = "2.0.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Clean out a cluttered folder the way you'd swipe through a dating app: one file at a time, left to toss, right to keep."
+homepage = "https://github.com/killerwolf/QuickToss"
+repository = "https://github.com/killerwolf/QuickToss"
+license = "MIT"
+authors = ["Hamdi LAADHARI"]
+
+[dependencies]
+gpui-kit = "0.6"
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+trash = "5"
+ureq = { version = "3", features = ["json"] }
+dirs = "6"
+chrono = "0.4"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-app-kit = "0.3"
+objc2-quick-look-thumbnailing = "0.3"
+objc2-core-graphics = "0.3"
+block2 = "0.6"
+
+# Debug info dominates target/ for a dependency tree this size (GPUI pulls in
+# wgpu, naga and a pile of tree-sitter grammars). Dropping it for dependencies
+# and keeping line tables for our own code cuts the build directory several
+# times over while still giving readable backtraces. Raise `debug` to true if
+# you need to step through QuickToss in a debugger.
+[profile.dev]
+debug = "line-tables-only"
+
+# GPUI is unusably slow when its own crates are built unoptimised, and these
+# are compiled once and then cached, so the one-off cost buys a smooth app for
+# the rest of the session.
+[profile.dev.package."*"]
+debug = false
+opt-level = 1
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true

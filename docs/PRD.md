@@ -1,5 +1,9 @@
 # QuickToss - MVP Product Requirements Document
 
+> Written before the first release. The problem, the users and the flows still
+> describe the product; some technical choices in section 5 were later decided
+> differently — see [ADR 0002](adr/0002-gpui-instead-of-electron.md).
+
 ## 1. Product Overview
 
 ### Vision Statement
@@ -67,8 +71,10 @@ A swipe-based interface that presents files one at a time with previews, allowin
 
 ### 5.1 Platform Requirements
 - **macOS 12.0+** (Monterey and later)
-- **Native macOS app** using SwiftUI
-- **Sandboxed** for App Store compatibility
+- **Native macOS app** using GPUI — originally specified as SwiftUI, and shipped
+  on Electron until 2.0
+- **Sandboxed** for App Store compatibility — not met; the app is distributed
+  directly and is unsigned beyond an ad-hoc signature
 - **Universal Binary** (Intel + Apple Silicon)
 
 ### 5.2 Performance Requirements

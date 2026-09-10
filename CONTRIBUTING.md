@@ -2,89 +2,85 @@
 
 ## Prerequisites
 
-- **Node.js 20 or newer** (CI builds on the current LTS, Node 24)
-- npm
+- **Rust (stable)** — install via [rustup](https://rustup.rs)
+- **Xcode Command Line Tools** — `xcode-select --install`
+- macOS 12 or newer
 
 ## Getting started
 
 ```bash
 git clone https://github.com/killerwolf/QuickToss.git
-cd QuickToss
-npm install
-npm run dev
+cd QuickToss/app
+cargo run
 ```
 
-`npm run dev` starts Vite on port 3000 and launches Electron once it's ready, with hot reload for the renderer and DevTools open.
+The first build takes a few minutes — GPUI is a large dependency tree — and every one after that is seconds.
 
 ## Project layout
 
 ```
-electron/          Electron main process
-  main.ts          Window lifecycle, wires IPC handlers to the modules below
-  file-operations.ts  Folder scanning, trash, file stats/reads
-  settings-store.ts   Settings persistence
-  updater.ts       Auto-updater orchestration, its file logger, release page
-  ipc-types.ts     Shared IPC contract (types + channel names)
-  ipc-register.ts  Wires IPC handlers to their channel names
-  preload.ts       contextBridge API exposed to the renderer
-src/               React renderer
-  components/      UI components
-  App.tsx          Screen state machine (welcome / viewing / completed)
-  types.ts         Shared renderer types
-  electron.d.ts    Renderer-side typing of window.electronAPI
-assets/            App icon source (icon.svg) and generated formats
-scripts/           Build tooling
-docs/              Product docs (PRD, user flow, logo brief)
+app/                   The application (Rust)
+  src/
+    main.rs            Entry point: window, key bindings, menu
+    app.rs             State, screen machine, and what a decision does
+    ui.rs              Every screen's rendering
+    session.rs         The queue, the tallies, and the undo stack
+    files.rs           Scanning, file kinds, trash, formatting
+    preview.rs         Text loading and the Quick Look bridge
+    settings.rs        Settings persistence
+    sound.rs           The two decision sounds, synthesised
+    update.rs          The "a newer version exists" check
+assets/                App icon source (icon.svg) and generated formats
+scripts/               Build tooling (bundling, icons, release notes)
+docs/                  Product docs (PRD, user flow, logo brief) and ADRs
+site/                  Landing page, deployed to GitHub Pages
 ```
 
-The renderer never touches the filesystem directly — everything goes through IPC handlers registered in `electron/main.ts` and exposed via `electron/preload.ts`.
+There is no process boundary and no IPC: `files::scan_folder` is a function that returns a `Vec<FileItem>`. Work that blocks — scanning, trashing, Quick Look, the update check — runs on GPUI's background executor and comes back to the view to be committed. See [ADR 0002](docs/adr/0002-gpui-instead-of-electron.md) for why the app is built this way.
 
-## Scripts
+## Commands
 
-| Script | What it does |
+All of these run from `app/`.
+
+| Command | What it does |
 | --- | --- |
-| `npm run dev` | Vite + Electron with hot reload |
-| `npm run build` | Build the renderer (Vite) and compile the main process (tsc) |
-| `npm run pack` | Build, then package unpacked into `release/` (fast sanity check) |
-| `npm run dist` | Build and package installers without publishing |
-| `npm run build:mac` | Build and package for macOS |
-| `npm run build:icons` | Regenerate all icon formats from `assets/icon.svg` |
-| `npm test` | Run the test suite once |
-| `npm run test:watch` | Re-run tests as files change |
-| `npm run test:coverage` | Run tests with a coverage report |
-| `npm run typecheck` | Typecheck the renderer, main process, and tests |
-| `npm run lint` | Biome lint |
-| `npm run check` | Biome lint + format check |
-| `npm run check:fix` | Apply Biome fixes |
+| `cargo run` | Build and launch |
+| `cargo test` | Run the test suite |
+| `cargo clippy --all-targets` | Lint |
+| `cargo fmt` | Format |
+| `cargo build --release` | Optimised build |
+
+And from the repository root:
+
+| Command | What it does |
+| --- | --- |
+| `scripts/bundle.sh` | Assemble `dist/QuickToss.app` |
+| `scripts/bundle.sh --dmg` | ...and the `.dmg` that ships it |
+| `scripts/build-icons.sh` | Regenerate icon formats from `assets/icon.svg` |
 
 ## Code style
 
-Formatting and linting are handled by [Biome](https://biomejs.dev). CI runs `npm run lint` and `npm run check` as **blocking** steps, so run `npm run check:fix` before pushing.
+`cargo fmt` and `cargo clippy` are the whole story. CI runs `cargo fmt --check` and `cargo clippy --all-targets -- -D warnings` as **blocking** steps, so run both before pushing.
 
 ## Tests
 
-Tests run on [Vitest](https://vitest.dev) with Testing Library, in a jsdom environment. Test files sit next to the code they cover as `*.test.ts` / `*.test.tsx`, and CI runs them as a blocking step.
+Tests live in `#[cfg(test)]` modules beside the code they cover, and CI runs them as a blocking step.
 
-```bash
-npm test              # once
-npm run test:watch    # while developing
-```
+Coverage is partial by design. It covers the session state machine (keep / toss / undo), settings persistence including reading files written by the old Electron build, folder scanning and file classification, the size formatter, version comparison, and the sound synthesis staying inside its headroom. Extending it is tracked in [#9](https://github.com/killerwolf/QuickToss/issues/9).
 
-Coverage is partial by design — the suite currently covers file-type classification, the formatting helpers, file operations, settings persistence, session state (`src/hooks/useFileSession.ts` — keep/delete/undo), and the update notifier. Extending it is tracked in [#9](https://github.com/killerwolf/QuickToss/issues/9).
+`preview.rs` tests the Quick Look bridge against real files it writes to a temp directory, so `QLThumbnailGenerator` is genuinely exercised rather than mocked — including that a missing file fails rather than hanging. Those tests need macOS, which is what CI runs on.
 
-Logic worth testing should live outside `electron/main.ts`, which instantiates the app at import time and can't be loaded from a test. `electron/file-types.ts`, `electron/file-operations.ts`, and `electron/settings-store.ts` are the pattern to follow: pure functions (or a factory taking its dependencies as parameters) the main process calls, importable on their own.
-
-Note that `tsconfig.main.json` excludes `*.test.ts` so tests never end up in the packaged app; `tsconfig.test.json` typechecks them instead.
+Logic worth testing should stay out of `ui.rs` and off `QuickToss` itself. `session.rs`, `files.rs`, `settings.rs` and `update.rs` are the pattern to follow: plain functions and plain data, with no `Window` or `Context` in sight, so a test can call them directly.
 
 ## Icons
 
 The icon has a single source of truth: `assets/icon.svg` (1024×1024). After editing it:
 
 ```bash
-npm run build:icons
+scripts/build-icons.sh
 ```
 
-This rasterizes the SVG with sharp and generates `icon.icns` (macOS), `icon.ico` (Windows), and the PNG sizes, writing them into `assets/`. Commit the generated files along with the SVG.
+This rasterises the SVG and regenerates `icon.icns` and the PNG sizes into `assets/`. Commit the generated files along with the SVG.
 
 Avoid putting text in the icon — it's unreadable at 16–32px, and macOS already shows the app name under the icon.
 
@@ -94,44 +90,47 @@ Releases are built and published by GitHub Actions ([.github/workflows/release.y
 
 ```bash
 git checkout main && git pull
-git tag v1.5.0
-git push origin v1.5.0
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
-CI then builds both macOS architectures (x64 + arm64), publishes a GitHub release with the `.dmg`/`.zip` assets, and uploads `latest-mac.yml` for update checks.
+CI builds both architectures into one universal binary, wraps it in a `.dmg`, and publishes a GitHub release with the notes taken from that version's `CHANGELOG.md` section.
 
 **Release candidates.** A tag containing a semver prerelease suffix publishes as a GitHub *prerelease* instead:
 
 ```bash
-git tag v1.5.0-rc.1
-git push origin v1.5.0-rc.1
+git tag v2.0.0-rc.1
+git push origin v2.0.0-rc.1
 ```
 
-Prereleases are skipped by the in-app update check, so they won't be advertised to people running a stable version.
+The in-app update check reads the *latest* release, so prereleases aren't advertised to people running a stable version.
 
 Publishing uses the `GITHUB_TOKEN` that Actions provides automatically — no personal access token needed.
 
-Pull requests run lint, format check, and a packaging smoke test, but never publish.
+Pull requests run lint, format check, tests, and a bundle build, but never publish.
 
-## Known constraint: react-pdf is pinned
+## Known constraint: GPUI is pre-1.0
 
-`react-pdf` is held at 6.2.2 (with `pdfjs-dist` 3.11.174) on purpose. Newer versions fail at runtime with `Promise.withResolvers is not a function` under the Electron/Node version this app ships. Upgrading either one means verifying a PDF still previews in a packaged build, not just that it compiles.
+GPUI publishes as `gpui-pre-*` snapshots of Zed's main branch and makes breaking changes between versions. The app depends on [GPUI Kit](https://gpui-kit.com), which pins a matching set of those crates and provides the component layer, so upgrading means moving `gpui-kit` as a unit rather than chasing individual crates. Expect an upgrade to need code changes, and read GPUI Kit's release notes first.
+
+## Known constraint: no video playback
+
+GPUI has no video element, and the one third-party player depends on GStreamer being installed system-wide. Video files show the poster frame Quick Look produces, and `O` opens them in QuickTime.
+
+The obvious next step is a scrubbable filmstrip: `AVAssetImageGenerator` can pull frames at intervals, and dragging across them reads a recording faster than playing it does. Tracked in [#37](https://github.com/killerwolf/QuickToss/issues/37).
 
 ## Known constraint: unsigned builds
 
-QuickToss isn't signed with an Apple Developer ID or notarized, which has two consequences:
+QuickToss is signed ad-hoc, not with an Apple Developer ID, and isn't notarized. macOS therefore shows a *"QuickToss.app is damaged"* warning on first launch, and users have to run `xattr -cr /Applications/QuickToss.app` once.
 
-1. macOS shows a *"QuickToss.app is damaged"* warning on first launch; users have to run `xattr -cr /Applications/QuickToss.app`.
-2. Automatic in-place updates can't work. Squirrel.Mac rejects the downloaded bundle's signature on arm64, and on x64 electron-updater can't even read a signature for the running app. The app therefore only *checks* for updates and links to the release page.
-
-Both are tracked in [#7](https://github.com/killerwolf/QuickToss/issues/7). If you're debugging update behavior, the app writes a log to `~/Library/Logs/QuickToss/auto-updater.log`.
+This also rules out safe in-place updates, so the app only *checks* for a newer version and links to the release page. Both are tracked in [#7](https://github.com/killerwolf/QuickToss/issues/7).
 
 ## Platform support
 
-macOS is the only platform currently built and released. `package.json` still carries Windows (nsis) and Linux (AppImage) build config, but CI doesn't produce those artifacts and they're untested — see [#11](https://github.com/killerwolf/QuickToss/issues/11).
+macOS is the only platform built and released. GPUI itself supports Windows and Linux, but `preview.rs` leans on QuickLookThumbnailing for everything it can't decode natively, so those platforms need a preview backend of their own before they'd be worth shipping — see [#11](https://github.com/killerwolf/QuickToss/issues/11).
 
 ## Pull requests
 
 1. Branch off `main`.
-2. Make your change, and run `npm run check:fix` and `npm run build`.
+2. Make your change, and run `cargo fmt`, `cargo clippy --all-targets`, and `cargo test`.
 3. Open a PR describing what changed and how you verified it.
